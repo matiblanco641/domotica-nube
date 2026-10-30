@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>ARGUSS · Casa inteligente</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+<style>
+
+:root{color-scheme:dark;--bg:#050b1a;--s1:#0a1630;--s2:#0f2040;--bd:#1b3059;--tx:#e8f1ff;--mu:#8aa3cc;--cy:#38d6ff;--bl:#2f6bff;--ok:#3ddc97;--wa:#ffb84d;--bad:#ff5d6c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#10285a55,transparent),var(--bg);color:var(--tx);font:15px/1.45 'Sora',system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+
+button,input,select{font:inherit;color:inherit}
+
+#app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+
+nav{position:sticky;top:0;height:100vh;padding:20px 12px;border-right:1px solid var(--bd);background:#07112600;display:flex;flex-direction:column;gap:4px}
+
+.logo{font-weight:700;letter-spacing:.18em;font-size:20px;padding:4px 12px 18px;color:var(--cy)}.logo small{display:block;letter-spacing:0;font-weight:400;font-size:11px;color:var(--mu)}
+
+nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;color:var(--mu);text-decoration:none;border:1px solid transparent;cursor:pointer}
+
+nav a.on{background:var(--s2);color:var(--tx);border-color:var(--bd);box-shadow:inset 3px 0 0 var(--cy)}
+
+main{padding:22px clamp(14px,3vw,34px) 40px;max-width:1150px;width:100%}
+
+h1{font-size:24px;margin:0 0 4px}h2{font-size:16px;margin:26px 0 10px;color:var(--cy)}p.sub{color:var(--mu);margin:0 0 18px}
+
+.top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+
+.chip{display:inline-flex;gap:7px;align-items:center;padding:5px 11px;border-radius:99px;border:1px solid var(--bd);background:var(--s1);font-size:12.5px}
+
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}.ok .dot{background:var(--ok);box-shadow:0 0 8px var(--ok)}.wa .dot{background:var(--wa)}.bad .dot{background:var(--bad)}.wa{color:var(--wa)}.bad{color:var(--bad)}.ok{color:var(--ok)}
+
+.demo{background:#3a2a08;border:1px solid #7a5a1a;color:var(--wa);padding:8px 12px;border-radius:10px;margin-bottom:14px;font-size:13px}
+
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+
+.card{background:linear-gradient(180deg,var(--s2),var(--s1));border:1px solid var(--bd);border-radius:14px;padding:14px}
+
+.card.click{cursor:pointer;transition:border-color .2s,transform .2s}.card.click:hover{border-color:var(--cy)}
+
+.big{font-size:28px;font-weight:700}.mu{color:var(--mu);font-size:13px}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #1b305955}.row:first-of-type{border-top:0}
+
+.tag{font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--bd);color:var(--mu)}.tag.sim{color:var(--wa);border-color:#7a5a1a}.tag.real{color:var(--ok);border-color:#1d6b4a}
+
+.sw{width:46px;height:26px;border-radius:99px;border:1px solid var(--bd);background:#0a1a38;position:relative;cursor:pointer;flex:none;transition:.2s}
+
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--mu);transition:.2s}
+
+.sw.on{background:var(--bl);border-color:var(--cy)}.sw.on::after{left:23px;background:#fff}.sw:disabled{opacity:.4;cursor:not-allowed}
+
+.btn{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:8px 14px;cursor:pointer}.btn:hover{border-color:var(--cy)}.btn.p{background:var(--bl);border-color:var(--cy)}.btn.d{border-color:#7a2a35;color:var(--bad)}.btn.on{background:var(--bl)}
+
+input,select{background:#07122a;border:1px solid var(--bd);border-radius:99px;padding:8px 14px;width:100%;max-width:100%}
+
+input:focus,button:focus-visible,select:focus,nav a:focus-visible{outline:2px solid var(--cy);outline-offset:1px}
+
+.lbl{display:block;color:var(--mu);font-size:12.5px;margin:10px 0 4px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+
+.ev{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:9px 0;border-top:1px solid #1b305955;align-items:center}
+
+.err{color:var(--bad);font-size:13px;margin-top:6px}svg text{fill:var(--mu);font-size:10px;font-family:inherit}
+
+.plan{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.plan .card{padding:10px;text-align:center}.plan b{display:block}
+
+.pulse{animation:p 2s infinite}@keyframes p{50%{opacity:.45}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+@media(max-width:860px){#app{grid-template-columns:1fr}nav{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:#050b1af2;backdrop-filter:blur(10px);border-top:1px solid var(--bd);border-right:0;z-index:5;justify-content:space-around}
+
+.logo{display:none}nav a{flex-direction:column;gap:1px;padding:5px 3px;font-size:10px;flex:1;text-align:center;min-width:0}nav a.on{box-shadow:none}main{padding-bottom:100px}.grid{grid-template-columns:1fr 1fr}}
+
+@media(max-width:480px){.grid{grid-template-columns:1fr}}
+
+:root{--bg:#0b0b0c;--s1:#111112;--s2:#17171a;--bd:#4d4025;--tx:#ece6d8;--mu:#8f887a;--cy:#cfa65e;--bl:#b8893a;--ok:#a9cf92;--wa:#e0b25a;--bad:#e5766c}
+
+body{font-family:'Montserrat',system-ui,-apple-system,sans-serif;font-weight:300;background:linear-gradient(118deg,#0b0b0c 0 30%,#141415 30% 48%,#0c0c0d 48% 66%,#151516 66% 100%) fixed}
+
+h1{font-weight:300;letter-spacing:.14em;font-size:22px}h2{font-weight:400;letter-spacing:.12em;font-size:14px}b{font-weight:500}.big{font-weight:300;letter-spacing:.04em}
+
+.logo{font-weight:300;letter-spacing:.4em}nav{background:#0a0a0bd9}nav a.on{background:transparent;color:var(--cy);box-shadow:none}
+
+.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;flex:none}
+
+.card{background:#111112d9;border-radius:4px}.chip,.btn{background:transparent;border-radius:4px}.btn.p,.btn.on{background:#2b2111;color:var(--cy);border-color:var(--cy)}
+
+.sw.on{background:#3a2c12}.sw.on::after{background:var(--cy)}.demo{background:#1d1608;border-color:#5b4818;border-radius:4px}
+
+svg line{stroke:var(--mu)!important}svg polyline{stroke:var(--cy)!important}
+
+input[type=range]{padding:0;border:0;background:none;max-width:none;width:100%;-webkit-appearance:none;height:24px}
+
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--cy)}input[type=range]::-moz-range-track{height:2px;background:var(--cy)}
+
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cy);margin-top:-7px}input[type=range]::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--cy)}
+
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;margin:10px 0 6px}.hl,.hr{text-align:center}
+
+.clk{font-size:clamp(40px,8vw,66px);font-weight:200;letter-spacing:.14em}
+
+.mic{position:relative;width:170px;height:170px;margin:10px auto;background:none;border:0;color:var(--cy);cursor:pointer;border-radius:50%}
+
+.mic svg.r{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:var(--cy)}.mic .ic{width:52px;height:52px;position:absolute;left:59px;top:59px}.mic:hover{filter:drop-shadow(0 0 8px #cfa65e66)}
+
+.dt{font-size:40px;font-weight:200;letter-spacing:.1em;margin-top:8px}.dt small{display:block;font-size:12px;letter-spacing:.5em;color:var(--cy);margin-top:4px}
+
+.hex{position:relative;width:min(270px,75%);margin:0 auto}.hex svg{width:100%;display:block;fill:none;stroke:var(--cy);stroke-width:2}
+
+.hex div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
+
+.login-box{max-width:420px;margin:60px auto;padding:28px 24px;border:1px solid var(--bd);background:#111112d9;border-radius:4px;text-align:center}
+
+.login-box h1{margin-bottom:6px}
+
+.login-box input, .login-box select{margin:8px 0;width:100%;max-width:100%}
+
+@media(max-width:860px){.hero{grid-template-columns:1fr}#app.no-auth{grid-template-columns:1fr}}
+
+</style></head><body>
+
+<div id="app"><nav id="nav"></nav><main id="main"></main></div>
+
+<script>
+
+"use strict";
+
+/* ============ DATOS ============ */
+
+const KEY='arguss.v4',P={home:'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z',therm:'M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0zM12 9v7',sens:'M5 12a10 10 0 0 1 14 0M8 15a6 6 0 0 1 8 0M12 19h.01',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',gear:'M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M6 15v4',bed:'M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5M7 11.5h.01',shower:'M5 20V8a4 4 0 0 1 8 0M13 8h6M13 12v1M16 12v1M19 12v1M15 16v1M18 16v1',sink:'M3 12h18v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM12 12V6a2 2 0 0 1 4 0M8 19l-1 2M16 19l1 2',sofa:'M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M3 12a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3zM6 17v2M18 17v2',balcony:'M6 3h12v10H6zM12 3v10M3 13h18M3 21V13M8 13v8M13 13v8M18 13v8M21 13v8',door:'M6 3h12v18H6zM14 12h.01',flame:'M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z',snow:'M12 3v18M4 7.5l16 9M20 7.5l-16 9',alert:'M12 3l10 18H2zM12 10v5M12 18h.01',mic:'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM6 11a6 6 0 0 0 12 0M12 17v4M9 21h6'},ic=k=>`<svg class="ic" viewBox="0 0 24 24"><path d="${P[k]||P.door}"/></svg>`,IK=['bed','shower','sink','sofa','balcony','door'],NAMES={bed:'Dormitorio',shower:'Ducha',sink:'Bachas',sofa:'Estar',balcony:'Balcón',door:'Puerta'};
+
+const KINDS={temp:['Temperatura','°C'],hum:['Humedad','%'],lux:['Luminosidad','lx'],door:['Puerta','' ],window:['Ventana',''],motion:['Movimiento',''],air:['Calidad del aire','ICA'],o2:['Oxígeno (O₂)','%']};
+
+const iso=()=>new Date().toISOString();
+
+
+
+function seedDept1(demo=true){
+
+ const t=demo?iso():null,v=x=>demo?x:null,R=(id,name,k)=>({id,name,icon:ic(k)});
+
+ return{
+
+  auth:{user:'Departamento 1',pass:'1234'},
+
+  reports:[],
+
+  rooms:[R('dorm1','Dormitorio 1','bed'),R('dorm2','Dormitorio 2','bed'),R('bano','Baño','shower'),R('antebano','Antebaño','sink'),R('estar','Cocina-comedor-estar','sofa'),R('balcon','Balcón','balcony')],
+
+  devices:[['luz-dorm1','dorm1','Luz techo'],['luz-velador','dorm1','Velador'],['luz-dorm2','dorm2','Luz techo'],['luz-bano','bano','Luz baño'],['luz-antebano','antebano','Luz espejo'],['luz-cocina','estar','Luz cocina'],['luz-comedor','estar','Luz comedor'],['luz-estar','estar','Luz estar'],['luz-balcon','balcon','Luz balcón']].map((a,i)=>({id:a[0],room:a[1],name:a[2],on:demo&&i%4==0,online:demo})),
+
+  sensors:[['temp-estar','estar','temp','Temp. estar',v(21.4)],['hum-estar','estar','hum','Humedad estar',v(48)],['lux-estar','estar','lux','Luz ambiente',v(220)],['temp-dorm1','dorm1','temp','Temp. dormitorio 1',v(20.1)],['temp-dorm2','dorm2','temp','Temp. dormitorio 2',v(20.8)],['hum-bano','bano','hum','Humedad baño',v(62)],['door-principal','estar','door','Puerta principal',v(0)],['door-balcon','balcon','door','Puerta balcón',v(0)],['win-dorm1','dorm1','window','Ventana dormitorio 1',v(0)],['win-dorm2','dorm2','window','Ventana dormitorio 2',v(0)],['mov-estar','estar','motion','Movimiento estar',v(0)],['air-estar','estar','air','Aire cocina-estar',v(35)]].map(a=>({id:a[0],room:a[1],kind:a[2],name:a[3],value:a[4],online:demo,ts:t})),
+
+  events:demo?[{id:1,ts:iso(),room:'balcon',type:'puerta',msg:'Puerta del balcón abierta (ejemplo)',sim:true,alert:true}]:[],
+
+  set:{demo:true,api:'',low:20,high:25,target:22,mode:'auto'},
+
+  hvac:{heat:false,cool:false,boiler:false,ac:false,online:demo},
+
+  hist:[],errors:[]}
+
+}
+
+
+
+function seedDept2(demo=true){
+
+ const t=demo?iso():null,v=x=>demo?x:null,R=(id,name,k)=>({id,name,icon:ic(k)});
+
+ return{
+
+  auth:{user:'Departamento 2',pass:'1234'},
+
+  reports:[],
+
+  rooms:[R('dorm1','Dormitorio 1','bed'),R('bano','Baño con ducha','shower'),R('antebano','Antebaño con 1 bacha','sink'),R('estar','Cocina-Comedor-Estar','sofa'),R('balcon','Balcón','balcony')],
+
+  devices:[['luz-dorm1','dorm1','Luz dormitorio'],['luz-velador','dorm1','Velador'],['luz-bano','bano','Luz baño ducha'],['luz-antebano','antebano','Luz antebaño bacha'],['luz-cocina','estar','Luz cocina'],['luz-comedor','estar','Luz comedor'],['luz-estar','estar','Luz estar'],['luz-balcon','balcon','Luz balcón']].map((a,i)=>({id:a[0],room:a[1],name:a[2],on:demo&&i%3==0,online:demo})),
+
+  sensors:[['temp-estar','estar','temp','Temp. Cocina-Comedor-Estar',v(22.1)],['hum-estar','estar','hum','Humedad estar',v(45)],['lux-estar','estar','lux','Luz ambiente estar',v(250)],['temp-dorm1','dorm1','temp','Temp. Dormitorio 1',v(20.5)],['hum-bano','bano','hum','Humedad baño ducha',v(58)],['door-principal','estar','door','Puerta principal',v(0)],['door-balcon','balcon','door','Puerta balcón',v(0)],['win-dorm1','dorm1','window','Ventana dormitorio',v(0)],['mov-estar','estar','motion','Movimiento estar',v(0)],['air-estar','estar','air','Calidad aire cocina',v(30)]].map(a=>({id:a[0],room:a[1],kind:a[2],name:a[3],value:a[4],online:demo,ts:t})),
+
+  events:demo?[{id:1,ts:iso(),room:'balcon',type:'puerta',msg:'Puerta balcón abierta (ejemplo)',sim:true,alert:true}]:[],
+
+  set:{demo:true,api:'',low:20,high:25,target:22,mode:'auto'},
+
+  hvac:{heat:false,cool:false,boiler:false,ac:false,online:demo},
+
+  hist:[],errors:[]}
+
+}
+
+
+
+function seedDept3(demo=true){
+
+ const t=demo?iso():null,v=x=>demo?x:null,R=(id,name,k)=>({id,name,icon:ic(k)});
+
+ return{
+
+  auth:{user:'Departamento 3',pass:'1234'},
+
+  reports:[],
+
+  rooms:[R('dorm1','Dormitorio 1','bed'),R('dorm2','Dormitorio 2','bed'),R('bano','Baño con ducha','shower'),R('antebano','Antebaño con 2 bachas','sink'),R('estar','Cocina-Comedor-Estar','sofa'),R('balcon','Balcón','balcony')],
+
+  devices:[['luz-dorm1','dorm1','Luz dormitorio 1'],['luz-dorm2','dorm2','Luz dormitorio 2'],['luz-bano','bano','Luz baño ducha'],['luz-antebano1','antebano','Luz bacha 1'],['luz-antebano2','antebano','Luz bacha 2'],['luz-cocina','estar','Luz cocina'],['luz-comedor','estar','Luz comedor'],['luz-estar','estar','Luz estar'],['luz-balcon','balcon','Luz balcón']].map((a,i)=>({id:a[0],room:a[1],name:a[2],on:demo&&i%3==0,online:demo})),
+
+  sensors:[['temp-estar','estar','temp','Temp. Cocina-Comedor-Estar',v(21.8)],['hum-estar','estar','hum','Humedad estar',v(46)],['lux-estar','estar','lux','Luz ambiente estar',v(230)],['temp-dorm1','dorm1','temp','Temp. Dormitorio 1',v(20.3)],['temp-dorm2','dorm2','temp','Temp. Dormitorio 2',v(20.7)],['hum-bano','bano','hum','Humedad baño ducha',v(60)],['door-principal','estar','door','Puerta principal',v(0)],['door-balcon','balcon','door','Puerta balcón',v(0)],['win-dorm1','dorm1','window','Ventana dormitorio 1',v(0)],['win-dorm2','dorm2','window','Ventana dormitorio 2',v(0)],['mov-estar','estar','motion','Movimiento estar',v(0)],['air-estar','estar','air','Calidad aire cocina',v(32)]].map(a=>({id:a[0],room:a[1],kind:a[2],name:a[3],value:a[4],online:demo,ts:t})),
+
+  events:demo?[{id:1,ts:iso(),room:'balcon',type:'puerta',msg:'Puerta balcón abierta (ejemplo)',sim:true,alert:true}]:[],
+
+  set:{demo:true,api:'',low:20,high:25,target:22,mode:'auto'},
+
+  hvac:{heat:false,cool:false,boiler:false,ac:false,online:demo},
+
+  hist:[],errors:[]}
+
+}
+
+
+
+let DATA_ALL;
+
+try{DATA_ALL=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+
+if(!DATA_ALL||!DATA_ALL['Departamento 1']||!DATA_ALL['Departamento 3']){
+
+  DATA_ALL={
+
+    'Departamento 1': seedDept1(),
+
+    'Departamento 2': seedDept2(),
+
+    'Departamento 3': seedDept3()
+
+  };
+
+}
+
+
+
+let currentDept = sessionStorage.getItem('arguss_current_dept') || 'Departamento 1';
+
+let S = DATA_ALL[currentDept];
+
+
+
+let sessionActive = sessionStorage.getItem('arguss_session') === 'true';
+
+let mySessionId = sessionStorage.getItem('arguss_myid') || null;
+
+
+
+let activeSessions = [];
+
+try { activeSessions = JSON.parse(localStorage.getItem('arguss_active_sessions_'+currentDept)) || []; } catch(e){}
+
+
+
+if(!sessionActive) {
+
+  sessionStorage.removeItem('arguss_session');
+
+  sessionStorage.removeItem('arguss_myid');
+
+}
+
+
+
+const save=()=>{
+
+  try{
+
+    DATA_ALL[currentDept] = S;
+
+    localStorage.setItem(KEY,JSON.stringify(DATA_ALL));
+
+  }catch(e){}
+
+};
+
+
+
+const saveSessions=()=>{
+
+  try{
+
+    localStorage.setItem('arguss_active_sessions_'+currentDept, JSON.stringify(activeSessions));
+
+  }catch(e){}
+
+};
+
+
+
+let conn=S.set.demo?'demo':'pending', busy={}, filt={room:'',type:''};
+
+
+
+/* ============ SERVICIO DE DISPOSITIVOS ============ */
+
+const logErr=m=>{S.errors.unshift({ts:iso(),m});S.errors=S.errors.slice(0,30);save()};
+
+async function http(method,path,body){
+
+ if(!S.set.api)throw new Error('Falta la dirección de la API local');
+
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),5000);
+
+ try{const r=await fetch(S.set.api.replace(/\/$/,'')+path,{method,signal:c.signal,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+
+  if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}
+
+ catch(e){conn='error';logErr(method+' '+path+': '+(e.name=='AbortError'?'tiempo agotado':e.message));throw e}
+
+ finally{clearTimeout(t)}}
+
+const svc={
+
+ async sync(){const d=await http('GET','/api/status');conn='ok';
+
+  (d.devices||[]).forEach(x=>{const m=S.devices.find(y=>y.id==x.id);if(m){m.on=!!x.on;m.online=x.online!==false}});
+
+  (d.sensors||[]).forEach(x=>{const m=S.sensors.find(y=>y.id==x.id);if(m){m.value=x.value;m.online=x.online!==false;m.ts=x.ts||iso()}});
+
+  if(d.thermostat){const t=d.thermostat;S.hvac.heat=!!t.heating;S.hvac.cool=!!t.cooling;S.hvac.boiler=!!t.boiler;S.hvac.ac=!!t.ac;S.hvac.online=t.online!==false;if(t.target!=null)S.set.target=t.target;if(t.mode)S.set.mode=t.mode}
+
+  save()},
+
+ async setLight(dev,on){if(S.set.demo){dev.on=on;addEv(dev.room,'luz',dev.name+(on?' encendida':' apagada'),false,true);return}
+
+  const r=await http('POST','/api/devices/'+dev.id,{on});dev.on=!!r.on},
+
+ async setClimate(p){
+    Object.assign(S.set,p);
+    if(S.set.demo){
+      if(S.set.mode==='auto'){autoHvac();}
+      else {
+        if(Object.prototype.hasOwnProperty.call(p,'boiler')) S.hvac.boiler=!!p.boiler;
+        if(Object.prototype.hasOwnProperty.call(p,'heat')) S.hvac.heat=!!p.heat;
+        if(Object.prototype.hasOwnProperty.call(p,'ac')) S.hvac.ac=!!p.ac;
+        if(Object.prototype.hasOwnProperty.call(p,'cool')) S.hvac.cool=!!p.cool;
+        if(S.hvac.boiler||S.hvac.heat){S.hvac.ac=false;S.hvac.cool=false;}
+        if(S.hvac.ac||S.hvac.cool){S.hvac.boiler=false;S.hvac.heat=false;}
+      }
+      save();return;
+    }
+
+  const r=await http('POST','/api/thermostat',{target:S.set.target,mode:S.set.mode,low:S.set.low,high:S.set.high,heat:p.heat,cool:p.cool,boiler:p.boiler,ac:p.ac});
+
+  S.hvac.heat=!!r.heating;S.hvac.cool=!!r.cooling;S.hvac.boiler=!!r.boiler;S.hvac.ac=!!r.ac;S.hvac.online=true}
+
+};
+
+
+
+/* ============ LÓGICA ============ */
+
+const room=id=>S.rooms.find(r=>r.id==id)||{name:'Sin ambiente',icon:'❔'};
+
+const sim=()=>S.set.demo;
+
+function addEv(r,type,msg,alert,fromDemo){S.events.unshift({id:Date.now()+Math.random(),ts:iso(),room:r,type,msg,sim:sim(),alert:!!alert});S.events=S.events.slice(0,80);save()}
+
+const avgTemp=()=>{const a=S.sensors.filter(s=>s.kind=='temp'&&s.online&&s.value!=null);return a.length?a.reduce((x,s)=>x+s.value,0)/a.length:null};
+
+
+
+function autoHvac(){
+
+ if(S.set.mode!='auto'){
+
+  if(S.hvac.heat&&S.hvac.cool)S.hvac.cool=false;
+
+  return;
+
+ }
+
+ const t=avgTemp();if(t==null){S.hvac.heat=S.hvac.cool=S.hvac.boiler=S.hvac.ac=false;return}
+
+ if(t < S.set.low){
+
+   S.hvac.heat = true; S.hvac.boiler = true; S.hvac.cool = false; S.hvac.ac = false;
+
+ } else if(t >= S.set.high){
+
+   S.hvac.cool = true; S.hvac.ac = true; S.hvac.heat = false; S.hvac.boiler = false;
+
+ } else {
+
+   S.hvac.heat = S.hvac.cool = S.hvac.boiler = S.hvac.ac = false;
+
+ }
+
+}
+
+
+
+function tick(){
+
+ if(!sim())return;const now=iso();
+
+ S.sensors.forEach(s=>{if(!s.online)return;
+
+  if(s.kind=='temp'){const d=(S.hvac.heat||S.hvac.boiler ? .18 : S.hvac.cool||S.hvac.ac ? -.18 : (22.5-s.value)*.03)+(Math.random()-.5)*.25;s.value=+(s.value+d).toFixed(1)}
+
+  if(s.kind=='hum')s.value=Math.max(30,Math.min(70,Math.round(s.value+(Math.random()-.5)*2)));
+
+  if(s.kind=='lux')s.value=Math.max(0,Math.round(s.value+(Math.random()-.5)*20));
+
+  if(s.kind=='air')s.value=Math.max(10,Math.round(s.value+(Math.random()-.5)*6));
+
+  s.ts=now});
+
+ autoHvac();const t=avgTemp();if(t!=null){S.hist.push({t:Date.now(),v:+t.toFixed(1)});S.hist=S.hist.slice(-60)}save()}
+
+
+
+function simEvent(){const c=S.sensors.filter(s=>['door','window','motion'].includes(s.kind));if(!c.length)return;
+
+ const s=c[Math.floor(Math.random()*c.length)];s.value=s.value?0:1;s.ts=iso();
+
+ const T={door:'puerta',window:'ventana',motion:'movimiento'}[s.kind];
+
+ addEv(s.room,T,s.kind=='motion'?(s.value?'Movimiento detectado':'Sin movimiento'):s.name+(s.value?' abierta':' cerrada'),!!s.value&&s.kind!='motion'?true:s.kind=='motion'&&!!s.value)}
+
+const sensorText=s=>s.value==null?'Sin lectura':s.kind=='door'||s.kind=='window'?(s.value?'Abierta':'Cerrada'):s.kind=='motion'?(s.value?'Detectado':'Sin movimiento'):s.value+' '+KINDS[s.kind][1];
+
+const fmt=t=>t?new Date(t).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const srcTag=()=>sim()?'<span class="tag sim">simulado</span>':'<span class="tag real">real</span>';
+
+function connChip(){const m={demo:['wa','Modo demostración'],pending:['wa','Conexión real pendiente'],ok:['ok','ESP32 conectado'],error:['bad','Sin respuesta del ESP32']}[conn];return `<span class="chip ${m[0]}"><i class="dot ${conn=='ok'?'pulse':''}"></i>${m[1]}</span>`}
+
+function roomLights(id){return S.devices.filter(d=>d.room==id)}
+
+
+
+/* ============ VISTAS ============ */
+
+const NAV=[['dash','🏠','Inicio'],['rooms','🧭','Ambientes'],['light','💡','Luces'],['clima','🌡️','Clima'],['sens','📡','Sensores'],['seg','🛡️','Seguridad'],['cfg','⚙️','Ajustes']];
+
+function head(t,s){return `<div class="top"><div><h1>${t}</h1><p class="sub">${s||''}</p></div>${connChip()}</div>${sim()?'<div class="demo">⚠ Modo demostración: todos los datos y lecturas son simulados. No hay hardware conectado.</div>':''}`}
+
+function lightRow(d){return `<div class="row"><div>${esc(d.name)}<div class="mu">${d.online?(d.on?'Encendida':'Apagada'):'Dispositivo sin conexión'} ${d.online?srcTag():''}</div></div><button class="sw ${d.on?'on':''}" role="switch" aria-checked="${d.on}" aria-label="${esc(d.name)}" data-act="tog" data-id="${d.id}" ${(!d.online&&!sim())||busy[d.id]?'disabled':''}></button></div>`}
+
+function rm_card(r){const L=roomLights(r.id),on=L.filter(d=>d.on).length,tm=S.sensors.find(s=>s.room==r.id&&s.kind=='temp'),hm=S.sensors.find(s=>s.room==r.id&&s.kind=='hum');
+
+ const op=S.sensors.filter(s=>s.room==r.id&&['door','window'].includes(s.kind)&&s.value==1).length;
+
+ return `<div class="card click" data-go="room-${r.id}" tabindex="0"><div class="top"><span style="font-size:26px">${r.icon}</span><span class="chip ${op?'wa':'ok'}"><i class="dot"></i>${op?op+' abierta(s)':'Normal'}</span></div><b>${esc(r.name)}</b><div class="mu">${tm&&tm.value!=null?tm.value+' °C':'— °C'} · ${hm&&hm.value!=null?hm.value+' %':'— %'}</div><div class="mu">💡 ${on}/${L.length} encendida(s)</div></div>`}
+
+function chart(){const h=S.hist;if(h.length<2)return '<div class="mu">Aún no hay historial. En modo demo se genera cada 4 segundos.</div>';
+
+ const W=600,H=170,vs=h.map(p=>p.v).concat([S.set.low,S.set.high]),mn=Math.min(...vs)-1,mx=Math.max(...vs)+1,X=i=>30+i*(W-40)/(h.length-1),Y=v=>H-20-(v-mn)/(mx-mn)*(H-35);
+
+ const ln=v=>`<line x1="30" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v==S.set.low?'#38d6ff':'#ff5d6c'}" stroke-dasharray="4 4" opacity=".6"/><text x="2" y="${Y(v)+3}">${v}°</text>`;
+
+ return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Historial de temperatura">${ln(S.set.low)}${ln(S.set.high)}<polyline fill="none" stroke="#2f6bff" stroke-width="2.5" points="${h.map((p,i)=>X(i)+','+Y(p.v)).join(' ')}"/></svg>`}
+
+function updClk(){const n=new Date(),$=i=>document.getElementById(i);if(!$('clk'))return;$('clk').textContent=n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});$('dd').textContent=n.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}).replace('.','').toUpperCase();$('dw').textContent=n.toLocaleDateString('es-AR',{weekday:'long'}).toUpperCase()}
+
+setInterval(updClk,1000);
+
+
+
+function hero(){const t=avgTemp();return `<div class="hero"><div class="hl"><div class="clk" id="clk"></div><button class="mic" data-act="voice" aria-label="Comandos de voz"><svg class="r" viewBox="0 0 170 170"><circle cx="85" cy="85" r="80" stroke-width="3" stroke-dasharray="1 6" stroke-linecap="round"/><circle cx="85" cy="85" r="66" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round" opacity=".6"/></svg>${ic('mic')}</button><div class="mu" id="vmsg">Tocá el micrófono y decí: “prendé la luz del dormitorio 1”</div><div class="dt"><span id="dd"></span><small id="dw"></small></div></div><div class="hr"><div class="hex"><svg viewBox="0 0 220 190"><polygon points="62,4 158,4 214,95 158,186 62,186 6,95"/></svg><div><span class="mu">Temperatura ${srcTag()}</span><span class="big" style="font-size:38px">${t==null?'—':t.toFixed(1)+'°'}</span><span class="mu">${S.hvac.boiler||S.hvac.heat?'🔥 Calefacción/Caldera':S.hvac.ac||S.hvac.cool?'❄️ Aire Acondicionado':'Climatización en reposo'}</span></div></div><div style="max-width:280px;margin:16px auto 0"><div class="mu">Objetivo ${S.set.target} °C</div><input type="range" id="tg" min="16" max="30" step="0.5" value="${S.set.target}" aria-label="Temperatura objetivo"></div></div></div>`}
+
+
+
+function voice(){const R=window.SpeechRecognition||window.webkitSpeechRecognition,o=document.getElementById('vmsg');if(!R){o.textContent='Este navegador no admite voz. Probá con Chrome o Safari.';return}
+
+ const r=new R();r.lang='es-AR';o.textContent='Escuchando…';r.onerror=()=>{o.textContent='No te escuché. Probá de nuevo.'};
+
+ r.onresult=async e=>{const q=e.results[0][0].transcript,N=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\buno\b/g,'1').replace(/\bdos\b/g,'2'),Q=N(q).split(/\s+/),on=/prend|encend/.test(N(q)),off=/apag/.test(N(q));
+
+  if(!on&&!off){o.textContent='“'+q+'” · Decí prendé o apagá y el ambiente.';return}
+
+  let T;if(Q.includes('todas')){if(!confirm((on?'¿Encender':'¿Apagar')+' todas las luces?'))return;T=S.devices}
+
+  else{const sc=S.rooms.map(r=>[r,N(r.name).split(/[-\s]+/).filter(w=>Q.includes(w)).length]),m=Math.max(...sc.map(x=>x[1]),0),hit=sc.filter(x=>x[1]==m&&m>0);if(hit.length!=1){o.textContent='“'+q+'” · No identifiqué el ambiente.';return}T=roomLights(hit[0][0].id)}
+
+  let ok=0;for(const d of T){if(d.on!=on&&(d.online||sim())){try{await svc.setLight(d,on);ok++}catch(x){}}}
+
+  render();document.getElementById('vmsg').textContent='“'+q+'” · '+(ok?ok+' luz/luces actualizada(s)':'Sin cambios confirmados')};r.start()}
+
+
+
+function loginView(){
+
+  return `<div class="login-box">
+
+    <div class="logo">ARGUSS<small>Casa inteligente</small></div>
+
+    <h1 style="margin-top:20px">Iniciar sesión</h1>
+
+    <p class="mu">Acceso restringido · Máx 5 usuarios</p>
+
+    <div style="text-align:left;margin-top:15px">
+
+      <label class="lbl">Seleccionar Departamento</label>
+
+      <select id="l-user">
+
+        <option value="Departamento 1" ${currentDept==='Departamento 1'?'selected':''}>Departamento 1</option>
+
+        <option value="Departamento 2" ${currentDept==='Departamento 2'?'selected':''}>Departamento 2</option>
+
+        <option value="Departamento 3" ${currentDept==='Departamento 3'?'selected':''}>Departamento 3</option>
+
+      </select>
+
+      <label class="lbl">Contraseña</label>
+
+      <input type="password" id="l-pass" placeholder="Ingresá tu contraseña">
+
+      <button class="btn p" style="width:100%;margin-top:15px" data-act="login">Ingresar</button>
+
+      <div class="err" id="login-err"></div>
+
+    </div>
+
+  </div>`;
+
+}
+
+
+
+const V={
+
+dash(){const t=avgTemp(),n=new Date(),L=S.devices,on=L.filter(d=>d.on),op=S.sensors.filter(s=>['door','window'].includes(s.kind)&&s.value==1),al=S.events.filter(e=>e.alert).slice(0,3);
+
+ return head('ARGUSS · '+currentDept,'Tu casa, bajo control')+hero()+
+
+ `<div class="grid">
+
+ <div class="card"><div class="mu">Temperatura general ${srcTag()}</div><div class="big">${t==null?'—':t.toFixed(1)+' °C'}</div><div class="mu">${t==null?'Sin sensores válidos':'Promedio de sensores en línea'}</div></div>
+
+ <div class="card"><div class="mu">Iluminación</div><div class="big">${on.length}/${L.length}</div><div class="mu">luces encendidas</div></div>
+
+ <div class="card"><div class="mu">Climatización</div><div class="big">${S.hvac.boiler||S.hvac.heat?'🔥 Caldera':S.hvac.ac||S.hvac.cool?'❄️ Aire':'En reposo'}</div><div class="mu">Modo ${S.set.mode=='auto'?'automático':'manual'} · objetivo ${S.set.target} °C</div></div>
+
+ <div class="card"><div class="mu">Puertas y ventanas</div><div class="big ${op.length?'wa':'ok'}">${op.length?op.length+' abierta(s)':'Todo cerrado'}</div><div class="mu">${S.sensors.filter(s=>['door','window'].includes(s.kind)).length} sensores</div></div>
+
+ <div class="card"><div class="mu">Ambientes</div><div class="big">${S.rooms.length}</div><div class="mu">${L.filter(d=>d.online).length+S.sensors.filter(d=>d.online).length} dispositivos conectados de ${L.length+S.sensors.length}</div></div></div>
+
+ <h2>Ambientes</h2><div class="grid">${S.rooms.map(rm_card).join('')}</div>
+
+ <h2>Plano esquemático</h2><div class="plan">${S.rooms.map(r=>{const o=roomLights(r.id).some(d=>d.on);return `<div class="card click" data-go="room-${r.id}" style="${o?'border-color:var(--cy);box-shadow:0 0 14px #cfa65e33':''}">${r.icon}<b>${esc(r.name)}</b><span class="mu">${o?'luz encendida':'luz apagada'}</span></div>`}).join('')}</div>
+
+ <h2>Alertas recientes</h2><div class="card">${al.length?al.map(evRow).join(''):'<div class="mu">Sin alertas.</div>'}</div>
+
+ <h2>Dispositivos encendidos</h2><div class="card">${on.length?on.map(d=>`<div class="row"><span>${esc(d.name)}</span><span class="mu">${room(d.room).name}</span></div>`).join(''):'<div class="mu">No hay dispositivos encendidos.</div>'}</div>`},
+
+rooms(){return head('Ambientes','Tocá un ambiente para ver su detalle.')+`<div class="grid">${S.rooms.map(rm_card).join('')}</div>`+(S.rooms.length?'':'<div class="card">No hay ambientes. Creá uno en Ajustes.</div>')},
+
+room(id){const r=S.rooms.find(x=>x.id==id);if(!r)return head('Ambiente no encontrado','')+'<button class="btn" data-go="rooms">Volver</button>';
+
+ const ss=S.sensors.filter(s=>s.room==id),al=S.events.filter(e=>e.room==id&&e.alert).slice(0,4);
+
+ return `<button class="btn" data-go="rooms">← Ambientes</button>`+head(r.icon+' '+esc(r.name),'Solo controla los dispositivos asignados a este ambiente.')+
+
+ `<h2>Luces</h2><div class="card">${roomLights(id).map(lightRow).join('')||'<div class="mu">Sin luces asignadas.</div>'}</div>
+
+ <h2>Sensores</h2><div class="card">${ss.map(s=>`<div class="row"><span>${esc(s.name)}<div class="mu">${KINDS[s.kind][0]} · ${s.online?'en línea':'desconectado'}</div></div><b>${sensorText(s)}</b></div>`).join('')||'<div class="mu">Sin sensores asignados.</div>'}</div>
+
+ <h2>Alertas</h2><div class="card">${al.length?al.map(evRow).join(''):'<div class="mu">Sin alertas en este ambiente.</div>'}</div>`},
+
+light(){return head('Iluminación','Luces agrupadas por ambiente.')+`<div class="bar"><button class="btn p" data-act="all" data-v="1">Encender todas</button><button class="btn" data-act="all" data-v="0">Apagar todas</button></div>`+
+
+ S.rooms.map(r=>{const L=roomLights(r.id);return L.length?`<h2>${r.icon} ${esc(r.name)}</h2><div class="card">${L.map(lightRow).join('')}</div>`:''}).join('')+(S.devices.filter(d=>!S.rooms.find(r=>r.id==d.room)).length?'<h2>Sin ambiente</h2><div class="card">'+S.devices.filter(d=>!S.rooms.find(r=>r.id==d.room)).map(lightRow).join('')+'</div>':'')},
+
+clima(){const t=avgTemp(),A=S.set.mode=='auto',hv=S.hvac;
+
+ return head('Climatización','Control de Calderas y Aire Acondicionado.')+
+
+ `${!hv.online&&!sim()?'<div class="card bad">Termostato desconectado: no se pueden enviar órdenes.</div>':''}${t==null?'<div class="card wa" style="margin-bottom:10px">Ningún sensor de temperatura está en línea. La climatización automática queda en reposo.</div>':''}
+
+ <div class="grid"><div class="card"><div class="mu">Temperatura medida ${srcTag()}</div><div class="big">${t==null?'—':t.toFixed(1)+' °C'}</div><div class="mu">Humedad: ${(()=>{const h=S.sensors.find(s=>s.kind=='hum'&&s.value!=null&&s.online);return h?h.value+' %':'sin dato'})()}</div></div>
+
+ <div class="card"><div class="mu">Temperatura objetivo</div><div class="bar" style="align-items:center"><button class="btn" data-act="tgt" data-v="-0.5">−</button><span class="big">${S.set.target} °C</span><button class="btn" data-act="tgt" data-v="0.5">+</button></div></div>
+
+ <div class="card"><div class="mu">Estado del Equipamiento</div>
+
+ <div class="row"><span>🔥 Calderas</span><button class="btn ${hv.boiler||hv.heat?'on':''}" data-act="toggle-boiler">${hv.boiler||hv.heat?'ENCENDIDA':'APAGADA'}</button></div>
+
+ <div class="row"><span>❄️ Aire Acondicionado</span><button class="btn ${hv.ac||hv.cool?'on':''}" data-act="toggle-ac">${hv.ac||hv.cool?'ENCENDIDO':'APAGADO'}</button></div></div></div>
+
+ <h2>Modo de Control</h2><div class="bar"><button class="btn ${A?'on':''}" data-act="mode" data-v="auto">Automático (por temperatura)</button><button class="btn ${A?'':'on'}" data-act="mode" data-v="manual">Manual</button></div>
+
+ ${A?`<div class="mu">En modo automático: si la temperatura cae de ${S.set.low} °C se encienden las calderas automáticamente. Si supera los ${S.set.high} °C se enciende el aire acondicionado.</div>`:`<div class="mu">Modo manual activado: Podés prender o apagar las calderas y aires mediante los botones superiores.</div>`}
+
+ <h2>Umbrales Automáticos</h2><div class="card"><label class="lbl">Encender Calderas por debajo de (°C)</label><input type="number" step="0.5" id="th-low" value="${S.set.low}"><label class="lbl">Encender Aire Acondicionado desde (°C)</label><input type="number" step="0.5" id="th-high" value="${S.set.high}"><div class="bar"><button class="btn p" data-act="th">Guardar umbrales</button></div><div class="err" id="th-err"></div></div>
+
+ <h2>Historial de temperatura ${srcTag()}</h2><div class="card">${chart()}</div>`},
+
+sens(){const g={};S.sensors.forEach(s=>(g[s.kind]=g[s.kind]||[]).push(s));
+
+ return head('Sensores','Última lectura de cada sensor.')+Object.keys(KINDS).map(k=>{if(k=='o2'&&!g.o2)return `<h2>${KINDS.o2[0]}</h2><div class="card mu">No hay un sensor de O₂ compatible instalado. No se muestra ningún valor.</div>`;
+
+  return (g[k]||[]).length?`<h2>${KINDS[k][0]}</h2><div class="card">${g[k].map(s=>`<div class="row"><div>${esc(s.name)}<div class="mu">${room(s.room).name} · ${s.online?'en línea':'desconectado'} · ${fmt(s.ts)}</div></div><div style="text-align:right"><b>${sensorText(s)}</b><div>${srcTag()}</div></div></div>`).join('')}</div>`:''}).join('')},
+
+seg(){const E=S.events.filter(e=>(!filt.room||e.room==filt.room)&&(!filt.type||e.type==filt.type)),dp=S.sensors.filter(s=>['door','window','motion'].includes(s.kind));
+
+ return head('Seguridad','Puertas, ventanas, movimiento y registro de eventos.')+
+
+ `<div class="grid">${dp.map(s=>`<div class="card"><div class="mu">${room(s.room).name}</div><b>${esc(s.name)}</b><div class="big ${s.value==1?'wa':'ok'}" style="font-size:20px">${sensorText(s)}</div></div>`).join('')}</div>
+
+ <h2>Registro de eventos</h2><div class="bar"><select id="f-room"><option value="">Todos los ambientes</option>${S.rooms.map(r=>`<option value="${r.id}" ${filt.room==r.id?'selected':''}>${esc(r.name)}</option>`).join('')}</select><select id="f-type"><option value="">Todos los tipos</option>${['puerta','ventana','movimiento','luz','sistema'].map(t=>`<option ${filt.type==t?'selected':''}>${t}</option>`).join('')}</select>${sim()?'<button class="btn" data-act="simev">Simular evento</button>':''}<button class="btn d" data-act="clrev">Borrar registro</button></div>
+
+ <div class="card">${E.length?E.map(evRow).join(''):'<div class="mu">No hay eventos con estos filtros.</div>'}</div>`},
+
+cfg(){
+
+ return head('Ajustes','Configuración del sistema y seguridad.')+
+
+ `<h2>Sesión y Seguridad</h2>
+
+ <div class="card">
+
+   <div class="row"><span>Usuario / Departamento actual</span><b>${esc(currentDept)}</b></div>
+
+   <div class="row"><span>Sesiones activas en ${esc(currentDept)}</span><b class="${activeSessions.length>=5?'bad':'ok'}">${activeSessions.length} / 5 autorizadas</b></div>
+
+   <label class="lbl">Cambiar Contraseña de ${esc(currentDept)}</label>
+
+   <input type="password" id="chg-pass" placeholder="Nueva contraseña">
+
+   <div class="bar"><button class="btn p" data-act="chg-pass-btn">Guardar nueva contraseña</button></div>
+
+   <div class="err" id="pass-err" style="color:var(--ok)"></div>
+
+   <div class="bar" style="margin-top:15px"><button class="btn d" data-act="logout">Cerrar Sesión</button></div>
+
+ </div>
+
+
+
+ <h2>Gestión de Accesos (${activeSessions.length}/5)</h2>
+
+ <div class="card">
+
+   <p class="mu">Si ves algún dispositivo o persona desconocida en la sesión, podés denunciarlo para expulsarlo de inmediato.</p>
+
+   ${activeSessions.map(sess=>`
+
+     <div class="row">
+
+       <div>
+
+         <b>${esc(sess.device)} ${sess.id===mySessionId?'<span class="tag real">Esta sesión</span>':''}</b>
+
+         <div class="mu">Conectado desde: ${fmt(sess.ts)}</div>
+
+       </div>
+
+       ${sess.id!==mySessionId ? `<button class="btn d" data-act="report-session" data-id="${sess.id}">Denunciar y Expulsar</button>` : ''}
+
+     </div>
+
+   `).join('')}
+
+ </div>
+
+
+
+ ${S.reports.length ? `<h2>Denuncias Realizadas</h2><div class="card">${S.reports.map(rep=>`<div class="row"><div><b class="bad">Denuncia de acceso no autorizado</b><div class="mu">Dispositivo: ${esc(rep.device)} · ${fmt(rep.ts)}</div></div></div>`).join('')}</div>` : ''}
+
+
+
+ <h2>Conexión Hardware</h2><div class="card"><div class="row"><span>Modo demostración</span><button class="sw ${S.set.demo?'on':''}" role="switch" aria-checked="${S.set.demo}" aria-label="Modo demostración" data-act="demo"></button></div>
+
+ <label class="lbl">Dirección de la API local del ESP32</label><input id="api" value="${esc(S.set.api)}" placeholder="http://..."><div class="bar"><button class="btn p" data-act="api">Guardar y probar conexión</button></div><div class="mu">Estado: ${connChip()}</div><div class="err" id="api-err"></div></div>
+
+ <h2>Ambientes</h2><div class="card">${S.rooms.map(r=>`<div class="row"><span>${r.icon}<input style="max-width:170px;margin-left:6px" value="${esc(r.name)}" data-ren="room:${r.id}" aria-label="Nombre del ambiente"></span><span><select data-ico="${r.id}" aria-label="Icono" style="max-width:120px">${IK.map(i=>`<option value="${i}" ${ic(i)==r.icon?'selected':''}>${NAMES[i]}</option>`).join('')}</select> <button class="btn d" data-act="delroom" data-id="${r.id}">Eliminar</button></span></div>`).join('')}
+
+ <div class="bar"><input id="nr" placeholder="Nuevo ambiente"><button class="btn p" data-act="addroom">Agregar</button></div><div class="err" id="nr-err"></div></div>
+
+ <h2>Dispositivos y sensores</h2><div class="card">${S.devices.concat(S.sensors).map(d=>`<div class="row"><input style="max-width:170px" value="${esc(d.name)}" data-ren="${d.kind?'s':'d'}:${d.id}" aria-label="Nombre"><select data-asg="${d.kind?'s':'d'}:${d.id}" aria-label="Ambiente" style="max-width:150px">${S.rooms.map(r=>`<option value="${r.id}" ${r.id==d.room?'selected':''}>${esc(r.name)}</option>`).join('')}</select></div>`).join('')}</div>
+
+ <div class="bar"><button class="btn d" data-act="reset">Restablecer datos de demostración</button></div>`}
+
+};
+
+
+
+function evRow(e){return `<div class="ev"><span>${e.alert?'🚨':'•'}</span><div>${esc(e.msg)}<div class="mu">${room(e.room).name} · ${e.type} · ${fmt(e.ts)}</div></div><span class="tag ${e.sim?'sim':'real'}">${e.sim?'simulado':'real'}</span></div>`}
+
+
+
+/* ============ NAVEGACIÓN Y EVENTOS ============ */
+
+function route(){const h=(location.hash||'#dash').slice(1);return h.startsWith('room-')?['room',h.slice(5)]:[V[h]?h:'dash']}
+
+
+
+function render(keep){
+
+ const appEl = document.getElementById('app');
+
+ if(!sessionActive){
+
+   appEl.classList.add('no-auth');
+
+   document.getElementById('nav').innerHTML='';
+
+   if(!document.getElementById('l-pass')){
+
+     document.getElementById('main').innerHTML=loginView();
+
+   }
+
+   return;
+
+ }
+
+ appEl.classList.remove('no-auth');
+
+ const [v,a]=route();
+
+ document.getElementById('nav').innerHTML='<div class="logo">ARGUSS<small>'+esc(currentDept)+'</small></div>'+NAV.map(n=>`<a data-go="${n[0]}" tabindex="0" class="${(v==n[0]||(v=='room'&&n[0]=='rooms'))?'on':''}"><span>${ic(({dash:'home',rooms:'grid',light:'bulb',clima:'therm',sens:'sens',seg:'shield',cfg:'gear'})[n[0]])}</span>${n[2]}</a>`).join('');
+
+ const m=document.getElementById('main'),y=scrollY,ae=document.activeElement;if(keep&&ae&&ae.matches&&ae.matches('input,select'))return;
+
+ m.innerHTML=V[v](a).replace(/🔥/g,ic('flame')).replace(/❄️/g,ic('snow')).replace(/💡/g,ic('bulb')).replace(/🚨/g,ic('alert'));updClk();if(keep)scrollTo(0,y)
+
+}
+
+
+
+const go=h=>{location.hash=h;scrollTo(0,0)};
+
+window.addEventListener('hashchange',()=>render());
+
+document.addEventListener('keydown',e=>{
+
+  if(e.key=='Enter'){
+
+    if(e.target.id==='l-pass') login();
+
+    else if(e.target.dataset.go) go(e.target.dataset.go);
+
+  }
+
+});
+
+
+
+function login(){
+
+  const selectedDept = document.getElementById('l-user').value;
+
+  const p = document.getElementById('l-pass').value.trim();
+
+  const err = document.getElementById('login-err');
+
+
+
+  currentDept = selectedDept;
+
+  S = DATA_ALL[currentDept];
+
+
+
+  try { activeSessions = JSON.parse(localStorage.getItem('arguss_active_sessions_'+currentDept)) || []; } catch(e){ activeSessions = []; }
+
+
+
+  if(p !== S.auth.pass){
+
+    err.textContent = 'Contraseña incorrecta para ' + currentDept;
+
+    return;
+
+  }
+
+  if(activeSessions.length >= 5){
+
+    err.textContent = 'Límite alcanzado: Ya hay 5 personas en ' + currentDept;
+
+    return;
+
+  }
+
+  const myId = 'sess_' + Date.now();
+
+  sessionActive = true;
+
+  mySessionId = myId;
+
+
+
+  sessionStorage.setItem('arguss_session', 'true');
+
+  sessionStorage.setItem('arguss_myid', myId);
+
+  sessionStorage.setItem('arguss_current_dept', currentDept);
+
+
+
+  activeSessions.push({id: myId, user: currentDept, device: 'Este dispositivo ('+navigator.platform+')', ts: Date.now()});
+
+  saveSessions();
+
+  render();
+
+}
+
+
+
+document.addEventListener('change',e=>{const t=e.target;
+
+ if(t.id=='tg'){svc.setClimate({target:+t.value}).catch(()=>{}).then(()=>render())}else if(t.id=='f-room'){filt.room=t.value;render()}else if(t.id=='f-type'){filt.type=t.value;render()}
+
+ else if(t.dataset.ren){const [k,id]=t.dataset.ren.split(':'),v=t.value.trim();if(!v){render();return}const o=(k=='room'?S.rooms:k=='s'?S.sensors:S.devices).find(x=>x.id==id);o.name=v;save();render()}
+
+ else if(t.dataset.ico){S.rooms.find(r=>r.id==t.dataset.ico).icon=ic(t.value);save();render()}
+
+ else if(t.dataset.asg){const [k,id]=t.dataset.asg.split(':');(k=='s'?S.sensors:S.devices).find(x=>x.id==id).room=t.value;save();render()}});
+
+
+
+document.addEventListener('click',async e=>{
+
+ const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
+
+ const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
+
+
+
+ if(a=='login'){login();return}
+
+ if(a=='logout'){
+
+   sessionActive = false;
+
+   sessionStorage.removeItem('arguss_session');
+
+   sessionStorage.removeItem('arguss_myid');
+
+   activeSessions = activeSessions.filter(x=>x.id!==mySessionId);
+
+   mySessionId = null;
+
+   saveSessions();render();return;
+
+ }
+
+ if(a=='chg-pass-btn'){
+
+   const np = document.getElementById('chg-pass').value.trim();
+
+   const er = document.getElementById('pass-err');
+
+   if(!np){er.style.color='var(--bad)';er.textContent='Ingresá una contraseña válida';return}
+
+
+
+   S.auth.pass = np;
+
+   save(); 
+
+
+
+   er.style.color='var(--ok)';
+
+   er.textContent='¡Contraseña guardada correctamente!';
+
+   setTimeout(()=>{ document.getElementById('chg-pass').value = ''; }, 1000);
+
+   return;
+
+ }
+
+ if(a=='report-session'){
+
+   if(!confirm('¿Estás seguro de denunciar esta sesión? Será expulsada de inmediato.'))return;
+
+   const targetSess = activeSessions.find(x=>x.id===id);
+
+   if(targetSess){
+
+     S.reports.unshift({device: targetSess.device, ts: Date.now()});
+
+     activeSessions = activeSessions.filter(x=>x.id!==id);
+
+     addEv('estar', 'sistema', 'Denuncia realizada: Sesión de ' + targetSess.device + ' fue eliminada.', true, true);
+
+     saveSessions();save();render();
+
+   }
+
+   return;
+
+ }
+
+ if(a=='toggle-boiler'){
+
+   S.set.mode = 'manual';
+
+   S.hvac.boiler = !S.hvac.boiler;
+
+   S.hvac.heat = S.hvac.boiler;
+
+   if(S.hvac.boiler) { S.hvac.ac = false; S.hvac.cool = false; }
+
+   save();render();return;
+
+ }
+
+ if(a=='toggle-ac'){
+
+   S.set.mode = 'manual';
+
+   S.hvac.ac = !S.hvac.ac;
+
+   S.hvac.cool = S.hvac.ac;
+
+   if(S.hvac.ac) { S.hvac.boiler = false; S.hvac.heat = false; }
+
+   save();render();return;
+
+ }
+
+ if(a=='tog'){const d=S.devices.find(x=>x.id==id);busy[id]=1;render(1);try{await svc.setLight(d,!d.on)}catch(er){}busy[id]=0;save();render(1);return}
+
+ if(a=='all'){const on=b.dataset.v=='1';if(!confirm((on?'¿Encender':'¿Apagar')+' todas las luces de la casa?'))return;
+
+  for(const d of S.devices){if(d.on!=on&&(d.online||sim())){try{await svc.setLight(d,on)}catch(er){}}}render();return}
+
+ if(a=='tgt'){const v=+(S.set.target+ +b.dataset.v).toFixed(1);if(v<10||v>35)return;try{await svc.setClimate({target:v})}catch(er){}render();return}
+
+ if(a=='mode'){try{await svc.setClimate({mode:b.dataset.v})}catch(er){}render();return}
+
+ if(a=='th'){const l=+document.getElementById('th-low').value,h=+document.getElementById('th-high').value,er=document.getElementById('th-err');
+
+  if(isNaN(l)||isNaN(h)||l>=h){er.textContent='El límite de calefacción debe ser menor que el de refrigeración.';return}
+
+  S.set.low=l;S.set.high=h;try{await svc.setClimate({})}catch(x){}save();render();return}
+
+ if(a=='demo'){S.set.demo=!S.set.demo;if(S.set.demo){S=Object.assign(currentDept==='Departamento 1'?seedDept1():currentDept==='Departamento 2'?seedDept2():seedDept3(),{set:S.set,errors:S.errors,auth:S.auth});conn='demo'}else{const k=S.set;S=Object.assign(currentDept==='Departamento 1'?seedDept1(false):currentDept==='Departamento 2'?seedDept2(false):seedDept3(false),{set:k,errors:S.errors,auth:S.auth});conn=S.set.api?'pending':'pending'}save();render();if(!S.set.demo&&S.set.api)poll();return}
+
+ if(a=='api'){const v=document.getElementById('api').value.trim(),er=document.getElementById('api-err');
+
+  if(!/^https?:\/\/[^\s/]+/i.test(v)){er.textContent='Ingresá una dirección válida que empiece con http:// o https://';return}
+
+  S.set.api=v;save();if(S.set.demo){er.textContent='Desactivá el modo demostración para conectar con el ESP32.';return}
+
+  try{await svc.sync();er.textContent=''}catch(x){er.textContent='No se pudo conectar: '+x.message}render();return}
+
+ if(a=='addroom'){const i=document.getElementById('nr'),n=i.value.trim(),er=document.getElementById('nr-err');if(n.length<2||S.rooms.some(r=>r.name.toLowerCase()==n.toLowerCase())){er.textContent='Escribí un nombre único de al menos 2 letras.';return}
+
+  S.rooms.push({id:'r'+Date.now().toString(36),name:n,icon:ic('door')});save();render();return}
+
+ if(a=='delroom'){const r=room(id);if(!confirm('¿Eliminar "'+r.name+'"? Sus dispositivos quedarán sin ambiente.'))return;S.rooms=S.rooms.filter(x=>x.id!=id);save();render();return}
+
+ if(a=='voice'){voice();return}
+
+ if(a=='simev'){simEvent();render();return}
+
+ if(a=='clrev'){if(confirm('¿Borrar todo el registro de eventos?')){S.events=[];save();render()}return}
+
+ if(a=='reset'){if(!confirm('Se restablecerán ambientes, dispositivos y datos de demostración.'))return;S=currentDept==='Departamento 1'?seedDept1():currentDept==='Departamento 2'?seedDept2():seedDept3();conn='demo';activeSessions=[];saveSessions();save();render()}});
+
+
+
+/* ============ ARRANQUE ============ */
+
+async function poll(){if(S.set.demo||!S.set.api)return;try{await svc.sync()}catch(e){}if(!document.activeElement||!document.activeElement.matches('input,select'))render();}
+
+setInterval(()=>{
+
+  if(S.set.demo){
+
+    tick();
+
+    if(sessionActive) render(1);
+
+  } else poll();
+
+}, S.set.demo?4000:5000);
+
+
+
+    if(S.set.demo&&!S.hist.length){for(let i=0;i<20;i++)S.hist.push({t:Date.now()-(20-i)*4000,v:+(20.5+Math.sin(i/3)*1.2+i*.04).toFixed(1)})}
+
+    render();if(!S.set.demo)poll();
+<script src="/arguss-api.js"></script>
+    </script></body></html>
