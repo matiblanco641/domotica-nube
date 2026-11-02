@@ -114,137 +114,132 @@ app.get("/api/health", async (req, res) => {
 });
 
 // Registrar usuario
-app.post(
-  "/api/auth/register",
-  authLimiter,
-  async (req, res) => {
+app.post("/api/auth/register", authLimiter, async (req, res) => {
+  const email = String(req.body.email || "")
+    .trim()
+    .toLowerCase();
+
+  const password = String(req.body.password || "");
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({
+      error: "Ingresá un correo válido."
+    });
+  }
+
+  if (password.length < 10) {
+    return res.status(400).json({
+      error: "La contraseña debe tener al menos 10 caracteres."
+    });
+  }
+
+  let client;
+
+  try {
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const result = await client.query(
+      `INSERT INTO arguss_users (email, password_hash)
+       VALUES ($1, $2)
+       RETURNING id, email`,
+      [email, passwordHash]
+    );
+
+    const user = result.rows[0];
+
+    for (const [roomKey, name] of DEFAULT_ROOMS) {
+      await client.query(
+        `INSERT INTO arguss_rooms (user_id, room_key, name)
+         VALUES ($1, $2, $3)`,
+        [user.id, roomKey, name]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      token: generateToken(user),
+      user: {
+        id: user.id,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK").catch(() => {});
+    }
+
+    if (error.code === "23505") {
+      return res.status(409).json({
+        error: "Ese correo ya está registrado."
+      });
+    }
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "No se pudo crear la cuenta."
+    });
+
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// Iniciar sesión
+app.post("/api/auth/login", authLimiter, async (req, res) => {
+  try {
     const email = String(req.body.email || "")
       .trim()
       .toLowerCase();
 
     const password = String(req.body.password || "");
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({
-        error: "Ingresá un correo válido."
+    const result = await pool.query(
+      `SELECT id, email, password_hash
+       FROM arguss_users
+       WHERE email = $1`,
+      [email]
+    );
+
+    const user = result.rows[0];
+
+    if (
+      !user ||
+      !(await bcrypt.compare(password, user.password_hash))
+    ) {
+      return res.status(401).json({
+        error: "Correo o contraseña incorrectos."
       });
     }
 
-    if (password.length < 10) {
-      return res.status(400).json({
-        error: "La contraseña debe tener al menos 10 caracteres."
-      });
-    }
-
-    const client = await pool.connect();
-
-    try {
-      await client.query("BEGIN");
-
-      const passwordHash = await bcrypt.hash(password, 12);
-
-      const result = await client.query(
-        `INSERT INTO users (email, password_hash)
-         VALUES ($1, $2)
-         RETURNING id, email`,
-        [email, passwordHash]
-      );
-
-      const user = result.rows[0];
-
-      for (const [roomKey, name] of DEFAULT_ROOMS) {
-        await client.query(
-          `INSERT INTO rooms (user_id, room_key, name)
-           VALUES ($1, $2, $3)`,
-          [user.id, roomKey, name]
-        );
+    res.json({
+      token: generateToken(user),
+      user: {
+        id: user.id,
+        email: user.email
       }
+    });
 
-      await client.query("COMMIT");
+  } catch (error) {
+    console.error(error);
 
-      res.status(201).json({
-        token: generateToken(user),
-        user: {
-          id: user.id,
-          email: user.email
-        }
-      });
-
-    } catch (error) {
-      await client.query("ROLLBACK");
-
-      if (error.code === "23505") {
-        return res.status(409).json({
-          error: "Ese correo ya está registrado."
-        });
-      }
-
-      console.error(error);
-
-      res.status(500).json({
-        error: "No se pudo crear la cuenta."
-      });
-
-    } finally {
-      client.release();
-    }
+    res.status(500).json({
+      error: "No se pudo iniciar sesión."
+    });
   }
-);
-
-// Iniciar sesión
-app.post(
-  "/api/auth/login",
-  authLimiter,
-  async (req, res) => {
-    try {
-      const email = String(req.body.email || "")
-        .trim()
-        .toLowerCase();
-
-      const password = String(req.body.password || "");
-
-      const result = await pool.query(
-        `SELECT id, email, password_hash
-         FROM users
-         WHERE email = $1`,
-        [email]
-      );
-
-      const user = result.rows[0];
-
-      if (
-        !user ||
-        !(await bcrypt.compare(password, user.password_hash))
-      ) {
-        return res.status(401).json({
-          error: "Correo o contraseña incorrectos."
-        });
-      }
-
-      res.json({
-        token: generateToken(user),
-        user: {
-          id: user.id,
-          email: user.email
-        }
-      });
-
-    } catch (error) {
-      console.error(error);
-
-      res.status(500).json({
-        error: "No se pudo iniciar sesión."
-      });
-    }
-  }
-);
+});
 
 // Consultar usuario conectado
 app.get("/api/me", authenticate, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, email, created_at
-       FROM users
+       FROM arguss_users
        WHERE id = $1`,
       [req.user.sub]
     );
@@ -275,10 +270,11 @@ app.get("/api/rooms", authenticate, async (req, res) => {
          r.name,
          COALESCE(s.state, '{}'::jsonb) AS state,
          s.updated_at
-       FROM rooms r
-       LEFT JOIN room_states s ON s.room_id = r.id
+       FROM arguss_rooms r
+       LEFT JOIN arguss_room_states s
+         ON s.room_id = r.id
        WHERE r.user_id = $1
-       ORDER BY r.id`,
+       ORDER BY r.created_at`,
       [req.user.sub]
     );
 
@@ -288,7 +284,10 @@ app.get("/api/rooms", authenticate, async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "No se pudieron cargar las habitaciones." });
+
+    res.status(500).json({
+      error: "No se pudieron cargar las habitaciones."
+    });
   }
 });
 
@@ -312,14 +311,15 @@ app.put(
       });
     }
 
-    const client = await pool.connect();
+    let client;
 
     try {
+      client = await pool.connect();
       await client.query("BEGIN");
 
       const room = await client.query(
         `SELECT id
-         FROM rooms
+         FROM arguss_rooms
          WHERE user_id = $1 AND room_key = $2`,
         [req.user.sub, roomKey]
       );
@@ -335,7 +335,8 @@ app.put(
       const roomId = room.rows[0].id;
 
       const saved = await client.query(
-        `INSERT INTO room_states (room_id, state, updated_at)
+        `INSERT INTO arguss_room_states
+           (room_id, state, updated_at)
          VALUES ($1, $2::jsonb, NOW())
          ON CONFLICT (room_id)
          DO UPDATE SET
@@ -346,8 +347,8 @@ app.put(
       );
 
       await client.query(
-        `INSERT INTO change_history
-         (user_id, room_id, action, details)
+        `INSERT INTO arguss_change_history
+           (user_id, room_id, action, details)
          VALUES ($1, $2, $3, $4::jsonb)`,
         [
           req.user.sub,
@@ -366,7 +367,9 @@ app.put(
       });
 
     } catch (error) {
-      await client.query("ROLLBACK");
+      if (client) {
+        await client.query("ROLLBACK").catch(() => {});
+      }
 
       console.error(error);
 
@@ -375,7 +378,7 @@ app.put(
       });
 
     } finally {
-      client.release();
+      if (client) client.release();
     }
   }
 );
@@ -391,8 +394,9 @@ app.get("/api/history", authenticate, async (req, res) => {
          h.action,
          h.details,
          h.created_at
-       FROM change_history h
-       LEFT JOIN rooms r ON r.id = h.room_id
+       FROM arguss_change_history h
+       LEFT JOIN arguss_rooms r
+         ON r.id = h.room_id
        WHERE h.user_id = $1
        ORDER BY h.created_at DESC
        LIMIT 100`,
@@ -405,7 +409,10 @@ app.get("/api/history", authenticate, async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "No se pudo cargar el historial." });
+
+    res.status(500).json({
+      error: "No se pudo cargar el historial."
+    });
   }
 });
 
