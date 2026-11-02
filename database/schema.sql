@@ -2,10 +2,8 @@
 -- BASE DE DATOS ARGUSS
 -- ========================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 -- ========================================
--- USUARIOS Y PERMISOS
+-- USUARIOS
 -- ========================================
 
 CREATE TABLE IF NOT EXISTS arguss_users (
@@ -15,15 +13,25 @@ CREATE TABLE IF NOT EXISTS arguss_users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Agregar roles sin eliminar usuarios existentes
+-- Agregar permisos sin borrar usuarios existentes
 ALTER TABLE arguss_users
 ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
 
--- Corregir posibles roles inválidos
+-- Agregar departamento sin borrar usuarios existentes
+ALTER TABLE arguss_users
+ADD COLUMN IF NOT EXISTS department INTEGER NOT NULL DEFAULT 1;
+
+-- Normalizar roles inválidos
 UPDATE arguss_users
 SET role = 'user'
 WHERE role IS NULL
    OR role NOT IN ('admin', 'user');
+
+-- Normalizar departamentos inválidos
+UPDATE arguss_users
+SET department = 1
+WHERE department IS NULL
+   OR department NOT IN (1, 2, 3);
 
 -- ========================================
 -- HABITACIONES
@@ -67,7 +75,7 @@ CREATE TABLE IF NOT EXISTS arguss_change_history (
 );
 
 -- ========================================
--- ÍNDICES PARA MEJORAR LAS CONSULTAS
+-- ÍNDICES
 -- ========================================
 
 CREATE INDEX IF NOT EXISTS idx_arguss_rooms_user_id
@@ -78,3 +86,6 @@ ON arguss_change_history(user_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_arguss_users_email
 ON arguss_users(email);
+
+CREATE INDEX IF NOT EXISTS idx_arguss_users_department
+ON arguss_users(department);
