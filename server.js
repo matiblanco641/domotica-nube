@@ -8,7 +8,10 @@ const rateLimit = require("express-rate-limit");
 const { Pool } = require("pg");
 
 const app = express();
-app.set('trust proxy', 1);
+
+// Configuración para funcionar detrás del proxy de Render
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 3000;
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -49,6 +52,77 @@ const DEFAULT_ROOMS = [
   ["balcon", "Balcón"]
 ];
 
+// ========================================
+// CREAR Y CONFIGURAR ADMINISTRADOR
+// ========================================
+
+async function ensureAdmin() {
+  const email = (
+    process.env.ADMIN_EMAIL ||
+    "matiblanco641@gmail.com"
+  ).trim().toLowerCase();
+
+  const password = process.env.ADMIN_PASSWORD;
+
+  if (!password || password.length < 10) {
+    throw new Error(
+      "ADMIN_PASSWORD debe estar configurada y tener al menos 10 caracteres."
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const existing = await pool.query(
+    `SELECT id
+     FROM arguss_users
+     WHERE email = $1`,
+    [email]
+  );
+
+  let userId;
+
+  if (existing.rows.length === 0) {
+    const result = await pool.query(
+      `INSERT INTO arguss_users (email, password_hash)
+       VALUES ($1, $2)
+       RETURNING id`,
+      [email, passwordHash]
+    );
+
+    userId = result.rows[0].id;
+
+    console.log("Administrador ARGUSS creado correctamente.");
+
+  } else {
+    userId = existing.rows[0].id;
+
+    if (process.env.ADMIN_FORCE_RESET === "true") {
+      await pool.query(
+        `UPDATE arguss_users
+         SET password_hash = $1
+         WHERE id = $2`,
+        [passwordHash, userId]
+      );
+
+      console.log("Contraseña del administrador actualizada.");
+    }
+  }
+
+  // Crear habitaciones faltantes sin borrar las existentes
+  for (const [roomKey, name] of DEFAULT_ROOMS) {
+    await pool.query(
+      `INSERT INTO arguss_rooms (user_id, room_key, name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT DO NOTHING`,
+      [userId, roomKey, name]
+    );
+  }
+}
+
+// ========================================
+// AUTENTICACIÓN
+// ========================================
+
 function generateToken(user) {
   return jwt.sign(
     {
@@ -62,6 +136,7 @@ function generateToken(user) {
 
 function authenticate(req, res, next) {
   const header = req.headers.authorization || "";
+
   const token = header.startsWith("Bearer ")
     ? header.slice(7)
     : null;
@@ -75,6 +150,7 @@ function authenticate(req, res, next) {
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
+
   } catch {
     return res.status(401).json({
       error: "Sesión inválida o vencida."
@@ -94,7 +170,10 @@ function validState(state) {
   return JSON.stringify(state).length <= 10000;
 }
 
-// Comprobar servidor y base de datos
+// ========================================
+// ESTADO DEL SERVIDOR
+// ========================================
+
 app.get("/api/health", async (req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -104,6 +183,7 @@ app.get("/api/health", async (req, res) => {
       proyecto: "ARGUSS",
       database: "connected"
     });
+
   } catch (error) {
     console.error(error);
 
@@ -114,128 +194,147 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// Registrar usuario
-app.post("/api/auth/register", authLimiter, async (req, res) => {
-  const email = String(req.body.email || "")
-    .trim()
-    .toLowerCase();
+// ========================================
+// REGISTRO DE USUARIOS
+// ========================================
 
-  const password = String(req.body.password || "");
+app.post(
+  "/api/auth/register",
+  authLimiter,
+  async (req, res) => {
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({
-      error: "Ingresá un correo válido."
-    });
-  }
-
-  if (password.length < 10) {
-    return res.status(400).json({
-      error: "La contraseña debe tener al menos 10 caracteres."
-    });
-  }
-
-  let client;
-
-  try {
-    client = await pool.connect();
-    await client.query("BEGIN");
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    const result = await client.query(
-      `INSERT INTO arguss_users (email, password_hash)
-       VALUES ($1, $2)
-       RETURNING id, email`,
-      [email, passwordHash]
-    );
-
-    const user = result.rows[0];
-
-    for (const [roomKey, name] of DEFAULT_ROOMS) {
-      await client.query(
-        `INSERT INTO arguss_rooms (user_id, room_key, name)
-         VALUES ($1, $2, $3)`,
-        [user.id, roomKey, name]
-      );
-    }
-
-    await client.query("COMMIT");
-
-    res.status(201).json({
-      token: generateToken(user),
-      user: {
-        id: user.id,
-        email: user.email
-      }
-    });
-
-  } catch (error) {
-    if (client) {
-      await client.query("ROLLBACK").catch(() => {});
-    }
-
-    if (error.code === "23505") {
-      return res.status(409).json({
-        error: "Ese correo ya está registrado."
-      });
-    }
-
-    console.error(error);
-
-    res.status(500).json({
-      error: "No se pudo crear la cuenta."
-    });
-
-  } finally {
-    if (client) client.release();
-  }
-});
-
-// Iniciar sesión
-app.post("/api/auth/login", authLimiter, async (req, res) => {
-  try {
     const email = String(req.body.email || "")
       .trim()
       .toLowerCase();
 
     const password = String(req.body.password || "");
 
-    const result = await pool.query(
-      `SELECT id, email, password_hash
-       FROM arguss_users
-       WHERE email = $1`,
-      [email]
-    );
-
-    const user = result.rows[0];
-
-    if (
-      !user ||
-      !(await bcrypt.compare(password, user.password_hash))
-    ) {
-      return res.status(401).json({
-        error: "Correo o contraseña incorrectos."
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        error: "Ingresá un correo válido."
       });
     }
 
-    res.json({
-      token: generateToken(user),
-      user: {
-        id: user.id,
-        email: user.email
+    if (password.length < 10) {
+      return res.status(400).json({
+        error: "La contraseña debe tener al menos 10 caracteres."
+      });
+    }
+
+    let client;
+
+    try {
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      const result = await client.query(
+        `INSERT INTO arguss_users (email, password_hash)
+         VALUES ($1, $2)
+         RETURNING id, email`,
+        [email, passwordHash]
+      );
+
+      const user = result.rows[0];
+
+      for (const [roomKey, name] of DEFAULT_ROOMS) {
+        await client.query(
+          `INSERT INTO arguss_rooms (user_id, room_key, name)
+           VALUES ($1, $2, $3)`,
+          [user.id, roomKey, name]
+        );
       }
-    });
 
-  } catch (error) {
-    console.error(error);
+      await client.query("COMMIT");
 
-    res.status(500).json({
-      error: "No se pudo iniciar sesión."
-    });
+      res.status(201).json({
+        token: generateToken(user),
+        user: {
+          id: user.id,
+          email: user.email
+        }
+      });
+
+    } catch (error) {
+      if (client) {
+        await client.query("ROLLBACK").catch(() => {});
+      }
+
+      if (error.code === "23505") {
+        return res.status(409).json({
+          error: "Ese correo ya está registrado."
+        });
+      }
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "No se pudo crear la cuenta."
+      });
+
+    } finally {
+      if (client) client.release();
+    }
   }
-});
+);
 
-// Consultar usuario conectado
+// ========================================
+// INICIAR SESIÓN
+// ========================================
+
+app.post(
+  "/api/auth/login",
+  authLimiter,
+  async (req, res) => {
+
+    try {
+      const email = String(req.body.email || "")
+        .trim()
+        .toLowerCase();
+
+      const password = String(req.body.password || "");
+
+      const result = await pool.query(
+        `SELECT id, email, password_hash
+         FROM arguss_users
+         WHERE email = $1`,
+        [email]
+      );
+
+      const user = result.rows[0];
+
+      if (
+        !user ||
+        !(await bcrypt.compare(password, user.password_hash))
+      ) {
+        return res.status(401).json({
+          error: "Correo o contraseña incorrectos."
+        });
+      }
+
+      res.json({
+        token: generateToken(user),
+        user: {
+          id: user.id,
+          email: user.email
+        }
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error: "No se pudo iniciar sesión."
+      });
+    }
+  }
+);
+
+// ========================================
+// USUARIO CONECTADO
+// ========================================
+
 app.get("/api/me", authenticate, async (req, res) => {
   try {
     const result = await pool.query(
@@ -257,11 +356,17 @@ app.get("/api/me", authenticate, async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error interno." });
+
+    res.status(500).json({
+      error: "Error interno."
+    });
   }
 });
 
-// Obtener habitaciones y estados guardados
+// ========================================
+// HABITACIONES
+// ========================================
+
 app.get("/api/rooms", authenticate, async (req, res) => {
   try {
     const result = await pool.query(
@@ -292,11 +397,15 @@ app.get("/api/rooms", authenticate, async (req, res) => {
   }
 });
 
-// Guardar estado de una habitación
+// ========================================
+// GUARDAR ESTADO DE HABITACIÓN
+// ========================================
+
 app.put(
   "/api/rooms/:roomKey/state",
   authenticate,
   async (req, res) => {
+
     const roomKey = req.params.roomKey;
     const state = req.body.state;
 
@@ -384,7 +493,10 @@ app.put(
   }
 );
 
-// Consultar historial de cambios
+// ========================================
+// HISTORIAL
+// ========================================
+
 app.get("/api/history", authenticate, async (req, res) => {
   try {
     const result = await pool.query(
@@ -417,9 +529,15 @@ app.get("/api/history", authenticate, async (req, res) => {
   }
 });
 
-// Mostrar la página principal
+// ========================================
+// MOSTRAR APLICACIÓN
+// ========================================
+
 app.use((req, res, next) => {
-  if (req.method === "GET" && !req.path.startsWith("/api/")) {
+  if (
+    req.method === "GET" &&
+    !req.path.startsWith("/api/")
+  ) {
     return res.sendFile(
       path.join(__dirname, "public", "index.html")
     );
@@ -428,7 +546,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Crear las tablas e iniciar servidor
+// ========================================
+// INICIAR SERVIDOR
+// ========================================
+
 async function startServer() {
   const schema = fs.readFileSync(
     path.join(__dirname, "database", "schema.sql"),
@@ -436,6 +557,8 @@ async function startServer() {
   );
 
   await pool.query(schema);
+
+  await ensureAdmin();
 
   app.listen(PORT, () => {
     console.log(`ARGUSS funcionando en puerto ${PORT}`);
@@ -451,3 +574,4 @@ process.on("SIGTERM", async () => {
   await pool.end();
   process.exit(0);
 });
+
