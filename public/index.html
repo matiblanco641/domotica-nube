@@ -60,8 +60,8 @@ nav a:hover,nav a.active{
   color:var(--gold);
   border-color:var(--bd);
 }
-main{padding:28px;width:100%;max-width:1200px}
-h1{font-size:23px;font-weight:300;letter-spacing:3px}
+main{padding:28px;width:100%;max-width:1200px;position:relative}
+h1{font-size:23px;font-weight:300;letter-spacing:3px;margin:0}
 h2{font-size:15px;color:var(--gold);font-weight:400;margin-top:25px}
 .sub,.muted{color:var(--mu);font-size:13px}
 .card{
@@ -161,6 +161,158 @@ label{display:block;color:var(--mu);font-size:12px}
 body.admin-mode #app{display:block}
 body.admin-mode nav{display:none}
 body.admin-mode main{margin:auto}
+
+/* NUEVOS ESTILOS PARA LA VISTA DE INICIO (DISEÑO ARGUSS) */
+.home-container {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 30px;
+  align-items: center;
+  margin-top: 20px;
+}
+.home-left {
+  text-align: center;
+  padding: 20px 0;
+}
+.home-clock {
+  font-size: 72px;
+  font-weight: 300;
+  letter-spacing: 4px;
+  color: var(--tx);
+  line-height: 1;
+  margin-bottom: 20px;
+}
+.mic-btn-wrapper {
+  margin: 25px auto;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 2px dashed var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(207, 166, 94, 0.03);
+  transition: background 0.2s;
+}
+.mic-btn-wrapper:hover {
+  background: rgba(207, 166, 94, 0.08);
+}
+.mic-icon {
+  font-size: 36px;
+  color: var(--gold);
+}
+.mic-instruction {
+  color: var(--mu);
+  font-size: 12px;
+  margin-top: 10px;
+}
+.home-date {
+  font-size: 28px;
+  letter-spacing: 3px;
+  color: var(--tx);
+  margin-top: 25px;
+  font-weight: 300;
+}
+.home-day-name {
+  color: var(--mu);
+  font-size: 12px;
+  letter-spacing: 4px;
+  margin-top: 5px;
+}
+.hexagon-card {
+  width: 260px;
+  height: 290px;
+  background: #111112;
+  border: 1px solid var(--gold);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  text-align: center;
+  padding: 30px;
+  position: relative;
+}
+.hex-temp-badge {
+  background: #090909;
+  border: 1px solid var(--bd);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  color: var(--mu);
+  display: inline-block;
+  margin-bottom: 12px;
+}
+.hex-temp-value {
+  font-size: 32px;
+  color: var(--tx);
+  margin-bottom: 10px;
+}
+.hex-mode {
+  color: var(--gold);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.hex-target {
+  font-size: 12px;
+  color: var(--mu);
+  border-top: 1px solid var(--bd);
+  padding-top: 10px;
+  width: 140px;
+}
+.esp32-badge {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  border: 1px solid #7a2a35;
+  color: var(--bad);
+  background: rgba(229, 118, 108, 0.05);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 30px;
+}
+.home-bottom-card {
+  background: #111112;
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  padding: 16px;
+}
+.home-bottom-card .title {
+  color: var(--mu);
+  font-size: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.home-bottom-card .value {
+  font-size: 20px;
+  color: var(--tx);
+  font-weight: 400;
+  margin-bottom: 6px;
+}
+.home-bottom-card .desc {
+  color: var(--mu);
+  font-size: 11px;
+}
+
+@media(max-width:900px){
+  .home-container {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media(max-width:750px){
   #app{display:block}
   nav{
@@ -181,6 +333,7 @@ body.admin-mode main{margin:auto}
   nav a{font-size:10px;text-align:center;min-width:75px;padding:9px 5px}
   main{padding:18px 14px 100px}
   body.admin-mode main{padding:25px 14px}
+  .esp32-badge { position: relative; top: 0; right: 0; margin-bottom: 15px; display: inline-flex; }
 }
 </style>
 </head>
@@ -646,8 +799,83 @@ function render(){
   const main=$("main");
 
   if(currentView==="inicio"){
-    main.innerHTML=header("ARGUSS","Tu casa, bajo control.")+
-      `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
+    // Datos dinámicos calculados a partir de los estados actuales
+    const totalLights = rooms.reduce((acc, r) => acc + r.lights.length, 0);
+    const activeLights = rooms.reduce((acc, r) => acc + r.lights.filter(l => l.on).length, 0);
+    const deptName = currentUser?.department ? `Departamento ${currentUser.department}` : "Departamento 1";
+    
+    // Hora actual y fecha formateada en español
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+    const days = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+    const dayNum = String(now.getDate()).padStart(2, '0');
+    const monthStr = months[now.getMonth()];
+    const dayName = days[now.getDay()];
+    const dateStr = `${dayNum}-${monthStr}`;
+
+    const activeClimateText = climate.boiler ? "Caldera" : (climate.ac ? "Aire Acondicionado" : "Apagado");
+    const climateModeText = climate.mode === "auto" ? "Automático" : "Modo manual";
+
+    main.innerHTML = `
+      <div class="esp32-badge">● Sin respuesta del ESP32</div>
+      <h1>ARGUSS · ${escapeHTML(deptName)}</h1>
+      <p class="sub">Tu casa, bajo control</p>
+
+      <div class="home-container">
+        <div class="home-left">
+          <div class="home-clock">${timeStr}</div>
+          <div class="mic-btn-wrapper" onclick="notify('Escuchando orden de voz...')">
+            <span class="mic-icon">🎤</span>
+          </div>
+          <div class="mic-instruction">Tocá el micrófono y decí: “prendé la luz del dormitorio 1”</div>
+          <div class="home-date">${dateStr}</div>
+          <div class="home-day-name">${dayName}</div>
+        </div>
+
+        <div>
+          <div class="hexagon-card">
+            <div>
+              <span class="hex-temp-badge">Temperatura <span style="color:var(--ok)">real</span></span>
+              <div class="hex-temp-value">—</div>
+              <div class="hex-mode">❄ ${escapeHTML(activeClimateText)}</div>
+              <div class="hex-target">Objetivo ${climate.target} °C</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-bottom-grid">
+        <div class="home-bottom-card">
+          <div class="title">Temperatura general <span style="color:var(--ok)">real</span></div>
+          <div class="value">—</div>
+          <div class="desc">Sin sensores válidos</div>
+        </div>
+        <div class="home-bottom-card">
+          <div class="title">Iluminación</div>
+          <div class="value">${activeLights}/${totalLights}</div>
+          <div class="desc">luces encendidas</div>
+        </div>
+        <div class="home-bottom-card">
+          <div class="title">Climatización</div>
+          <div class="value">❄ ${escapeHTML(activeClimateText)}</div>
+          <div class="desc">${climateModeText} · objetivo ${climate.target} °C</div>
+        </div>
+        <div class="home-bottom-card">
+          <div class="title">Puertas y ventanas</div>
+          <div class="value" style="color:var(--ok)">Todo cerrado</div>
+          <div class="desc">4 sensores</div>
+        </div>
+        <div class="home-bottom-card">
+          <div class="title">Ambientes</div>
+          <div class="value">${rooms.length}</div>
+          <div class="desc">0 dispositivos conectados de 21</div>
+        </div>
+      </div>
+    `;
   }
 
   if(currentView==="ambientes"){
@@ -878,4 +1106,3 @@ boot();
 </script>
 </body>
 </html>
-
