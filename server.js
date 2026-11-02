@@ -1,4 +1,3 @@
-
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -9,11 +8,9 @@ const { Pool } = require("pg");
 
 const app = express();
 
-// Configuración para funcionar detrás del proxy de Render
 app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 3000;
-
 const DATABASE_URL = process.env.DATABASE_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -53,7 +50,7 @@ const DEFAULT_ROOMS = [
 ];
 
 // ========================================
-// CREAR Y CONFIGURAR ADMINISTRADOR
+// CONFIGURAR ADMINISTRADOR
 // ========================================
 
 async function ensureAdmin() {
@@ -70,8 +67,6 @@ async function ensureAdmin() {
     );
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-
   const existing = await pool.query(
     `SELECT id
      FROM arguss_users
@@ -82,9 +77,11 @@ async function ensureAdmin() {
   let userId;
 
   if (existing.rows.length === 0) {
+    const passwordHash = await bcrypt.hash(password, 12);
+
     const result = await pool.query(
-      `INSERT INTO arguss_users (email, password_hash)
-       VALUES ($1, $2)
+      `INSERT INTO arguss_users (email, password_hash, role)
+       VALUES ($1, $2, 'admin')
        RETURNING id`,
       [email, passwordHash]
     );
@@ -96,7 +93,18 @@ async function ensureAdmin() {
   } else {
     userId = existing.rows[0].id;
 
+    // Asignar rol de administrador a la cuenta configurada
+    await pool.query(
+      `UPDATE arguss_users
+       SET role = 'admin'
+       WHERE id = $1`,
+      [userId]
+    );
+
+    // Restablecer contraseña solamente cuando se solicita
     if (process.env.ADMIN_FORCE_RESET === "true") {
+      const passwordHash = await bcrypt.hash(password, 12);
+
       await pool.query(
         `UPDATE arguss_users
          SET password_hash = $1
@@ -106,6 +114,8 @@ async function ensureAdmin() {
 
       console.log("Contraseña del administrador actualizada.");
     }
+
+    console.log("Permisos de administrador verificados.");
   }
 
   // Crear habitaciones faltantes sin borrar las existentes
@@ -113,7 +123,7 @@ async function ensureAdmin() {
     await pool.query(
       `INSERT INTO arguss_rooms (user_id, room_key, name)
        VALUES ($1, $2, $3)
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT (user_id, room_key) DO NOTHING`,
       [userId, roomKey, name]
     );
   }
@@ -127,7 +137,8 @@ function generateToken(user) {
   return jwt.sign(
     {
       sub: String(user.id),
-      email: user.email
+      email: user.email,
+      role: user.role
     },
     JWT_SECRET,
     { expiresIn: "7d" }
@@ -150,12 +161,22 @@ function authenticate(req, res, next) {
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
-
   } catch {
     return res.status(401).json({
       error: "Sesión inválida o vencida."
     });
   }
+}
+
+// Comprobar que el usuario tenga permisos de administrador
+function requireAdmin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({
+      error: "Esta cuenta no tiene permisos de administrador."
+    });
+  }
+
+  next();
 }
 
 function validState(state) {
@@ -183,7 +204,6 @@ app.get("/api/health", async (req, res) => {
       proyecto: "ARGUSS",
       database: "connected"
     });
-
   } catch (error) {
     console.error(error);
 
@@ -202,7 +222,6 @@ app.post(
   "/api/auth/register",
   authLimiter,
   async (req, res) => {
-
     const email = String(req.body.email || "")
       .trim()
       .toLowerCase();
@@ -229,10 +248,12 @@ app.post(
 
       const passwordHash = await bcrypt.hash(password, 12);
 
+      // Los registros nuevos siempre son usuarios comunes
       const result = await client.query(
-        `INSERT INTO arguss_users (email, password_hash)
-         VALUES ($1, $2)
-         RETURNING id, email`,
+        `INSERT INTO arguss_users
+           (email, password_hash, role)
+         VALUES ($1, $2, 'user')
+         RETURNING id, email, role`,
         [email, passwordHash]
       );
 
@@ -252,7 +273,8 @@ app.post(
         token: generateToken(user),
         user: {
           id: user.id,
-          email: user.email
+          email: user.email,
+          role: user.role
         }
       });
 
@@ -287,7 +309,6 @@ app.post(
   "/api/auth/login",
   authLimiter,
   async (req, res) => {
-
     try {
       const email = String(req.body.email || "")
         .trim()
@@ -296,7 +317,7 @@ app.post(
       const password = String(req.body.password || "");
 
       const result = await pool.query(
-        `SELECT id, email, password_hash
+        `SELECT id, email, password_hash, role
          FROM arguss_users
          WHERE email = $1`,
         [email]
@@ -317,7 +338,8 @@ app.post(
         token: generateToken(user),
         user: {
           id: user.id,
-          email: user.email
+          email: user.email,
+          role: user.role
         }
       });
 
@@ -337,8 +359,9 @@ app.post(
 
 app.get("/api/me", authenticate, async (req, res) => {
   try {
+    // Consultar el rol actual en la base de datos
     const result = await pool.query(
-      `SELECT id, email, created_at
+      `SELECT id, email, role, created_at
        FROM arguss_users
        WHERE id = $1`,
       [req.user.sub]
@@ -362,6 +385,22 @@ app.get("/api/me", authenticate, async (req, res) => {
     });
   }
 });
+
+// ========================================
+// EJEMPLO DE RUTA EXCLUSIVA PARA ADMIN
+// ========================================
+
+app.get(
+  "/api/admin/check",
+  authenticate,
+  requireAdmin,
+  (req, res) => {
+    res.json({
+      ok: true,
+      message: "Permisos de administrador confirmados."
+    });
+  }
+);
 
 // ========================================
 // HABITACIONES
@@ -405,7 +444,6 @@ app.put(
   "/api/rooms/:roomKey/state",
   authenticate,
   async (req, res) => {
-
     const roomKey = req.params.roomKey;
     const state = req.body.state;
 
@@ -556,8 +594,10 @@ async function startServer() {
     "utf8"
   );
 
+  // Actualiza las tablas sin eliminar datos existentes
   await pool.query(schema);
 
+  // Configura la cuenta administradora
   await ensureAdmin();
 
   app.listen(PORT, () => {
@@ -574,4 +614,3 @@ process.on("SIGTERM", async () => {
   await pool.end();
   process.exit(0);
 });
-
