@@ -26,7 +26,10 @@ const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: process.env.NODE_ENV === "production"
     ? { rejectUnauthorized: false }
-    : false
+    : false,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000
 });
 
 app.use(express.json({ limit: "100kb" }));
@@ -35,6 +38,13 @@ app.use(express.static(path.join(__dirname, "public")));
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
   standardHeaders: "draft-7",
   legacyHeaders: false
 });
@@ -49,21 +59,47 @@ const DEFAULT_ROOMS = [
   ["balcon", "Balcón"]
 ];
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function validEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validDepartment(value) {
+  return [1, 2, 3].includes(Number(value));
+}
+
+async function createDefaultRooms(userId, client = pool) {
+  for (const [roomKey, name] of DEFAULT_ROOMS) {
+    await client.query(
+      `INSERT INTO arguss_rooms (user_id, room_key, name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, room_key) DO NOTHING`,
+      [userId, roomKey, name]
+    );
+  }
+}
+
 // ========================================
 // CONFIGURAR ADMINISTRADOR
 // ========================================
 
 async function ensureAdmin() {
-  const email = (
-    process.env.ADMIN_EMAIL ||
-    "matiblanco641@gmail.com"
-  ).trim().toLowerCase();
+  const email = normalizeEmail(
+    process.env.ADMIN_EMAIL || "matiblanco641@gmail.com"
+  );
 
   const password = process.env.ADMIN_PASSWORD;
 
+  if (!validEmail(email)) {
+    throw new Error("ADMIN_EMAIL no es válido.");
+  }
+
   if (!password || password.length < 10) {
     throw new Error(
-      "ADMIN_PASSWORD debe estar configurada y tener al menos 10 caracteres."
+      "ADMIN_PASSWORD debe tener al menos 10 caracteres."
     );
   }
 
@@ -80,8 +116,9 @@ async function ensureAdmin() {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const result = await pool.query(
-      `INSERT INTO arguss_users (email, password_hash, role)
-       VALUES ($1, $2, 'admin')
+      `INSERT INTO arguss_users
+         (email, password_hash, role, department)
+       VALUES ($1, $2, 'admin', 1)
        RETURNING id`,
       [email, passwordHash]
     );
@@ -93,7 +130,6 @@ async function ensureAdmin() {
   } else {
     userId = existing.rows[0].id;
 
-    // Asignar rol de administrador a la cuenta configurada
     await pool.query(
       `UPDATE arguss_users
        SET role = 'admin'
@@ -101,7 +137,6 @@ async function ensureAdmin() {
       [userId]
     );
 
-    // Restablecer contraseña solamente cuando se solicita
     if (process.env.ADMIN_FORCE_RESET === "true") {
       const passwordHash = await bcrypt.hash(password, 12);
 
@@ -118,27 +153,17 @@ async function ensureAdmin() {
     console.log("Permisos de administrador verificados.");
   }
 
-  // Crear habitaciones faltantes sin borrar las existentes
-  for (const [roomKey, name] of DEFAULT_ROOMS) {
-    await pool.query(
-      `INSERT INTO arguss_rooms (user_id, room_key, name)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, room_key) DO NOTHING`,
-      [userId, roomKey, name]
-    );
-  }
+  await createDefaultRooms(userId);
 }
 
 // ========================================
-// AUTENTICACIÓN
+// TOKENS Y AUTENTICACIÓN
 // ========================================
 
 function generateToken(user) {
   return jwt.sign(
     {
-      sub: String(user.id),
-      email: user.email,
-      role: user.role
+      sub: String(user.id)
     },
     JWT_SECRET,
     { expiresIn: "7d" }
@@ -168,9 +193,36 @@ function authenticate(req, res, next) {
   }
 }
 
-// Comprobar que el usuario tenga permisos de administrador
+// Consultar el usuario y su rol actual en la base de datos
+async function loadCurrentUser(req, res, next) {
+  try {
+    const result = await pool.query(
+      `SELECT id, email, role, department
+       FROM arguss_users
+       WHERE id = $1`,
+      [req.user.sub]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(401).json({
+        error: "La cuenta ya no existe."
+      });
+    }
+
+    req.currentUser = result.rows[0];
+    next();
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: "No se pudo verificar la cuenta."
+    });
+  }
+}
+
 function requireAdmin(req, res, next) {
-  if (req.user.role !== "admin") {
+  if (req.currentUser?.role !== "admin") {
     return res.status(403).json({
       error: "Esta cuenta no tiene permisos de administrador."
     });
@@ -204,6 +256,7 @@ app.get("/api/health", async (req, res) => {
       proyecto: "ARGUSS",
       database: "connected"
     });
+
   } catch (error) {
     console.error(error);
 
@@ -222,13 +275,10 @@ app.post(
   "/api/auth/register",
   authLimiter,
   async (req, res) => {
-    const email = String(req.body.email || "")
-      .trim()
-      .toLowerCase();
-
+    const email = normalizeEmail(req.body.email);
     const password = String(req.body.password || "");
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!validEmail(email)) {
       return res.status(400).json({
         error: "Ingresá un correo válido."
       });
@@ -248,34 +298,23 @@ app.post(
 
       const passwordHash = await bcrypt.hash(password, 12);
 
-      // Los registros nuevos siempre son usuarios comunes
       const result = await client.query(
         `INSERT INTO arguss_users
-           (email, password_hash, role)
-         VALUES ($1, $2, 'user')
-         RETURNING id, email, role`,
+           (email, password_hash, role, department)
+         VALUES ($1, $2, 'user', 1)
+         RETURNING id, email, role, department`,
         [email, passwordHash]
       );
 
       const user = result.rows[0];
 
-      for (const [roomKey, name] of DEFAULT_ROOMS) {
-        await client.query(
-          `INSERT INTO arguss_rooms (user_id, room_key, name)
-           VALUES ($1, $2, $3)`,
-          [user.id, roomKey, name]
-        );
-      }
+      await createDefaultRooms(user.id, client);
 
       await client.query("COMMIT");
 
       res.status(201).json({
         token: generateToken(user),
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role
-        }
+        user
       });
 
     } catch (error) {
@@ -310,14 +349,11 @@ app.post(
   authLimiter,
   async (req, res) => {
     try {
-      const email = String(req.body.email || "")
-        .trim()
-        .toLowerCase();
-
+      const email = normalizeEmail(req.body.email);
       const password = String(req.body.password || "");
 
       const result = await pool.query(
-        `SELECT id, email, password_hash, role
+        `SELECT id, email, password_hash, role, department
          FROM arguss_users
          WHERE email = $1`,
         [email]
@@ -339,7 +375,8 @@ app.post(
         user: {
           id: user.id,
           email: user.email,
-          role: user.role
+          role: user.role,
+          department: user.department
         }
       });
 
@@ -357,42 +394,25 @@ app.post(
 // USUARIO CONECTADO
 // ========================================
 
-app.get("/api/me", authenticate, async (req, res) => {
-  try {
-    // Consultar el rol actual en la base de datos
-    const result = await pool.query(
-      `SELECT id, email, role, created_at
-       FROM arguss_users
-       WHERE id = $1`,
-      [req.user.sub]
-    );
-
-    if (!result.rows[0]) {
-      return res.status(404).json({
-        error: "Usuario no encontrado."
-      });
-    }
-
+app.get(
+  "/api/me",
+  authenticate,
+  loadCurrentUser,
+  (req, res) => {
     res.json({
-      user: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: "Error interno."
+      user: req.currentUser
     });
   }
-});
+);
 
 // ========================================
-// EJEMPLO DE RUTA EXCLUSIVA PARA ADMIN
+// COMPROBAR PERMISOS DE ADMINISTRADOR
 // ========================================
 
 app.get(
   "/api/admin/check",
   authenticate,
+  loadCurrentUser,
   requireAdmin,
   (req, res) => {
     res.json({
@@ -403,38 +423,251 @@ app.get(
 );
 
 // ========================================
+// LISTAR USUARIOS
+// ========================================
+
+app.get(
+  "/api/admin/users",
+  authenticate,
+  loadCurrentUser,
+  requireAdmin,
+  adminLimiter,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT id, email, department, role, created_at
+         FROM arguss_users
+         WHERE role = 'user'
+         ORDER BY created_at DESC`
+      );
+
+      res.json({
+        users: result.rows
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error: "No se pudieron cargar los usuarios."
+      });
+    }
+  }
+);
+
+// ========================================
+// CREAR USUARIO DESDE ADMINISTRACIÓN
+// ========================================
+
+app.post(
+  "/api/admin/users",
+  authenticate,
+  loadCurrentUser,
+  requireAdmin,
+  adminLimiter,
+  async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || "");
+    const department = Number(req.body.department);
+
+    if (!validEmail(email)) {
+      return res.status(400).json({
+        error: "Ingresá un correo válido."
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: "La contraseña debe tener al menos 8 caracteres."
+      });
+    }
+
+    if (!validDepartment(department)) {
+      return res.status(400).json({
+        error: "Seleccioná un departamento válido."
+      });
+    }
+
+    let client;
+
+    try {
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      const result = await client.query(
+        `INSERT INTO arguss_users
+           (email, password_hash, role, department)
+         VALUES ($1, $2, 'user', $3)
+         RETURNING id, email, department, role, created_at`,
+        [email, passwordHash, department]
+      );
+
+      const user = result.rows[0];
+
+      await createDefaultRooms(user.id, client);
+
+      await client.query("COMMIT");
+
+      res.status(201).json({
+        ok: true,
+        user
+      });
+
+    } catch (error) {
+      if (client) {
+        await client.query("ROLLBACK").catch(() => {});
+      }
+
+      if (error.code === "23505") {
+        return res.status(409).json({
+          error: "Ese correo ya está registrado."
+        });
+      }
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "No se pudo crear el usuario."
+      });
+
+    } finally {
+      if (client) client.release();
+    }
+  }
+);
+
+// ========================================
+// CAMBIAR CONTRASEÑA DE USUARIO
+// ========================================
+
+app.post(
+  "/api/admin/users/:id/password",
+  authenticate,
+  loadCurrentUser,
+  requireAdmin,
+  adminLimiter,
+  async (req, res) => {
+    const userId = req.params.id;
+    const password = String(req.body.password || "");
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: "La contraseña debe tener al menos 8 caracteres."
+      });
+    }
+
+    try {
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      const result = await pool.query(
+        `UPDATE arguss_users
+         SET password_hash = $1
+         WHERE id = $2 AND role = 'user'
+         RETURNING id`,
+        [passwordHash, userId]
+      );
+
+      if (!result.rows[0]) {
+        return res.status(404).json({
+          error: "Usuario no encontrado."
+        });
+      }
+
+      res.json({
+        ok: true,
+        message: "Contraseña actualizada."
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error: "No se pudo cambiar la contraseña."
+      });
+    }
+  }
+);
+
+// ========================================
+// ELIMINAR USUARIO
+// ========================================
+
+app.delete(
+  "/api/admin/users/:id",
+  authenticate,
+  loadCurrentUser,
+  requireAdmin,
+  adminLimiter,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `DELETE FROM arguss_users
+         WHERE id = $1 AND role = 'user'
+         RETURNING id`,
+        [req.params.id]
+      );
+
+      if (!result.rows[0]) {
+        return res.status(404).json({
+          error: "Usuario no encontrado."
+        });
+      }
+
+      res.json({
+        ok: true,
+        message: "Usuario eliminado."
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error: "No se pudo eliminar el usuario."
+      });
+    }
+  }
+);
+
+// ========================================
 // HABITACIONES
 // ========================================
 
-app.get("/api/rooms", authenticate, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT
-         r.id,
-         r.room_key,
-         r.name,
-         COALESCE(s.state, '{}'::jsonb) AS state,
-         s.updated_at
-       FROM arguss_rooms r
-       LEFT JOIN arguss_room_states s
-         ON s.room_id = r.id
-       WHERE r.user_id = $1
-       ORDER BY r.created_at`,
-      [req.user.sub]
-    );
+app.get(
+  "/api/rooms",
+  authenticate,
+  loadCurrentUser,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+           r.id,
+           r.room_key,
+           r.name,
+           COALESCE(s.state, '{}'::jsonb) AS state,
+           s.updated_at
+         FROM arguss_rooms r
+         LEFT JOIN arguss_room_states s
+           ON s.room_id = r.id
+         WHERE r.user_id = $1
+         ORDER BY r.created_at`,
+        [req.currentUser.id]
+      );
 
-    res.json({
-      rooms: result.rows
-    });
+      res.json({
+        rooms: result.rows
+      });
 
-  } catch (error) {
-    console.error(error);
+    } catch (error) {
+      console.error(error);
 
-    res.status(500).json({
-      error: "No se pudieron cargar las habitaciones."
-    });
+      res.status(500).json({
+        error: "No se pudieron cargar las habitaciones."
+      });
+    }
   }
-});
+);
 
 // ========================================
 // GUARDAR ESTADO DE HABITACIÓN
@@ -443,6 +676,7 @@ app.get("/api/rooms", authenticate, async (req, res) => {
 app.put(
   "/api/rooms/:roomKey/state",
   authenticate,
+  loadCurrentUser,
   async (req, res) => {
     const roomKey = req.params.roomKey;
     const state = req.body.state;
@@ -469,7 +703,7 @@ app.put(
         `SELECT id
          FROM arguss_rooms
          WHERE user_id = $1 AND room_key = $2`,
-        [req.user.sub, roomKey]
+        [req.currentUser.id, roomKey]
       );
 
       if (!room.rows[0]) {
@@ -499,7 +733,7 @@ app.put(
            (user_id, room_id, action, details)
          VALUES ($1, $2, $3, $4::jsonb)`,
         [
-          req.user.sub,
+          req.currentUser.id,
           roomId,
           "state_updated",
           JSON.stringify(state)
@@ -535,37 +769,42 @@ app.put(
 // HISTORIAL
 // ========================================
 
-app.get("/api/history", authenticate, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT
-         h.id,
-         r.room_key,
-         r.name AS room_name,
-         h.action,
-         h.details,
-         h.created_at
-       FROM arguss_change_history h
-       LEFT JOIN arguss_rooms r
-         ON r.id = h.room_id
-       WHERE h.user_id = $1
-       ORDER BY h.created_at DESC
-       LIMIT 100`,
-      [req.user.sub]
-    );
+app.get(
+  "/api/history",
+  authenticate,
+  loadCurrentUser,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+           h.id,
+           r.room_key,
+           r.name AS room_name,
+           h.action,
+           h.details,
+           h.created_at
+         FROM arguss_change_history h
+         LEFT JOIN arguss_rooms r
+           ON r.id = h.room_id
+         WHERE h.user_id = $1
+         ORDER BY h.created_at DESC
+         LIMIT 100`,
+        [req.currentUser.id]
+      );
 
-    res.json({
-      history: result.rows
-    });
+      res.json({
+        history: result.rows
+      });
 
-  } catch (error) {
-    console.error(error);
+    } catch (error) {
+      console.error(error);
 
-    res.status(500).json({
-      error: "No se pudo cargar el historial."
-    });
+      res.status(500).json({
+        error: "No se pudo cargar el historial."
+      });
+    }
   }
-});
+);
 
 // ========================================
 // MOSTRAR APLICACIÓN
@@ -594,10 +833,9 @@ async function startServer() {
     "utf8"
   );
 
-  // Actualiza las tablas sin eliminar datos existentes
   await pool.query(schema);
+  console.log("Base de datos ARGUSS verificada.");
 
-  // Configura la cuenta administradora
   await ensureAdmin();
 
   app.listen(PORT, () => {
