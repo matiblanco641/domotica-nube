@@ -95,7 +95,7 @@ h2{font-size:14px;color:var(--gold);font-weight:400;letter-spacing:0.12em;margin
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:10px 0;
+  padding:12px 0;
   border-top:1px solid #4d402555;
 }
 .row:first-of-type{border-top:0}
@@ -168,36 +168,36 @@ label{display:block;color:var(--mu);font-size:12.5px}
   z-index:30;
 }
 .error, .err{color:var(--bad);font-size:13px;min-height:18px}
-.switch, .sw{
-  border:1px solid var(--bd);
-  border-radius:20px;
-  padding:7px 15px;
-  background:#090909;
-  width:46px;
-  height:26px;
-  position:relative;
-  cursor:pointer;
-  transition:.2s;
+
+/* SOLUCIÓN DEFINITIVA DEL BOTÓN INTERRUPTOR (DISEÑO TIPO PASTILLA LIMPIA) */
+.switch {
+  border: 1px solid var(--bd);
+  border-radius: 20px;
+  padding: 8px 18px;
+  background: #090909;
+  color: var(--mu);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
-.switch::after, .sw::after{
-  content:"";
-  position:absolute;
-  top:3px;
-  left:3px;
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background:var(--mu);
-  transition:.2s;
+.switch.on {
+  background: #392b13;
+  color: var(--gold);
+  border-color: var(--gold);
 }
-.switch.on, .sw.on{background:#3a2c12;color:var(--gold);border-color:var(--gold)}
-.sw.on::after{left:23px;background:var(--gold)}
+
 .hidden{display:none!important}
 body.admin-mode #app{display:block}
 body.admin-mode nav{display:none}
 body.admin-mode main{margin:auto}
 
-/* ESTILOS ESPECÍFICOS DE LA VISTA INICIO (DISEÑO ARGUSS) */
+/* ESTILOS DE LA VISTA INICIO */
 .hero{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;margin:10px 0 20px}
 .hl,.hr{text-align:center}
 .clk{font-size:clamp(40px,7vw,64px);font-weight:200;letter-spacing:.14em}
@@ -281,7 +281,6 @@ body.admin-mode main{margin:auto}
 <script>
 "use strict";
 
-/* CONFIGURACIÓN Y CONEXIÓN CON BASE DE DATOS */
 const API = "https://domotica-nube-1.onrender.com";
 const TOKEN_KEY = "arguss.token";
 
@@ -345,7 +344,6 @@ async function api(method,path,body){
   return data;
 }
 
-/* AMBIENTES */
 const roomDefinitions = [
   ["dormitorio-1","Dormitorio 1"],
   ["dormitorio-2","Dormitorio 2"],
@@ -449,7 +447,6 @@ async function saveRoom(room){
   }
 }
 
-/* AUTENTICACIÓN */
 async function login(email,password,target){
   const data=await api("POST","/api/auth/login",{email,password});
   const tk=data.token||data.accessToken||data.jwt;
@@ -515,7 +512,6 @@ $("adminLogin").addEventListener("click",async()=>{
   }
 });
 
-/* ADMINISTRACIÓN EXCLUSIVA */
 async function loadAdminUsers(){
   const data=await api("GET","/api/admin/users");
   adminUsers=Array.isArray(data)?data:(data.users||[]);
@@ -632,13 +628,13 @@ $("main").addEventListener("click",async event=>{
   }
 });
 
-/* NAVEGACIÓN NORMAL */
 const navItems=[
   ["inicio","Inicio"],
   ["ambientes","Ambientes"],
   ["luces","Iluminación"],
   ["clima","Climatización"],
   ["sensores","Sensores"],
+  ["seguridad","Seguridad"],
   ["historial","Historial"],
   ["ajustes","Ajustes"]
 ];
@@ -686,7 +682,6 @@ function lightControl(room,light){
   `;
 }
 
-/* RELOJ EN TIEMPO REAL PARA LA VISTA INICIO */
 function updateClock(){
   const clk = $("clk");
   const dd = $("dd");
@@ -780,10 +775,10 @@ function render(){
           <div style="font-size:22px;font-weight:300;margin:6px 0">❄ ${escapeHTML(activeClimateText)}</div>
           <div class="muted">${climate.mode === 'auto' ? 'Automático' : 'Manual'} · objetivo ${climate.target} °C</div>
         </div>
-        <div class="card">
+        <div class="card" onclick="currentView='seguridad';render()" style="cursor:pointer">
           <div class="muted">Puertas y ventanas</div>
           <div style="font-size:24px;font-weight:300;margin:6px 0;color:var(--ok)">Todo cerrado</div>
-          <div class="muted">4 sensores</div>
+          <div class="muted">Verificar sensores</div>
         </div>
         <div class="card">
           <div class="muted">Ambientes</div>
@@ -870,6 +865,42 @@ function render(){
       </div>`;
   }
 
+  if(currentView==="seguridad"){
+    main.innerHTML=header("Seguridad","Monitoreo de aberturas y detección de humo.")+
+      `<div class="grid" style="margin-top:15px">
+        <div class="card">
+          <h2>Detector de Humo / Gas</h2>
+          <div class="row" style="margin-top:10px">
+            <span>Estado del sensor</span>
+            <b style="color:var(--ok)">Normal (Sin humo)</b>
+          </div>
+          <p class="muted" style="margin-top:8px">El ESP32 no reporta presencia de humo en el ambiente.</p>
+        </div>
+
+        <div class="card">
+          <h2>Puertas y Ventanas</h2>
+          <div class="row" style="margin-top:10px">
+            <span>Estado general</span>
+            <b style="color:var(--ok)">Todo cerrado</b>
+          </div>
+          <p class="muted" style="margin-top:8px">No se detectaron aberturas activas en los ambientes.</p>
+        </div>
+      </div>
+      
+      <h2 style="margin-top:25px">Estado por ambiente</h2>
+      <div class="grid">
+        ${rooms.map(r=>`
+          <div class="card">
+            <b>${r.name}</b>
+            <div class="row" style="margin-top:8px">
+              <span class="muted">Puerta / Ventana</span>
+              <span style="color:var(--ok)">Cerrada</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>`;
+  }
+
   if(currentView==="historial"){
     main.innerHTML=header("Historial","Cambios registrados en la nube.")+
       `<div class="card" style="margin-top:15px" id="historyContent">Cargando historial...</div>`;
@@ -911,7 +942,6 @@ async function loadHistory(){
   }
 }
 
-/* EVENTOS DE LA APLICACIÓN */
 $("nav").addEventListener("click",event=>{
   const link=event.target.closest("[data-view]");
   if(link){
@@ -993,7 +1023,6 @@ function logout(){
   $("adminPassword").value="";
 }
 
-/* ARRANQUE */
 async function boot(){
   if(!token())return;
 
