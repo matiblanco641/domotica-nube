@@ -1,249 +1,881 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ARGUSS · Casa inteligente</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+
 <style>
-:root{color-scheme:dark;--bg:#0b0b0c;--s1:#111112;--s2:#17171a;--bd:#4d4025;--tx:#ece6d8;--mu:#8f887a;--cy:#cfa65e;--bl:#b8893a;--ok:#a9cf92;--wa:#e0b25a;--bad:#e5766c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;color:var(--tx);font:300 15px/1.45 'Montserrat',system-ui,-apple-system,sans-serif;min-height:100vh;background:linear-gradient(118deg,#0b0b0c 0 30%,#141415 30% 48%,#0c0c0d 48% 66%,#151516 66% 100%) fixed}
+:root {
+  color-scheme: dark;
+  --bg:#0b0b0c;
+  --card:#111112;
+  --bd:#4d4025;
+  --tx:#ece6d8;
+  --mu:#8f887a;
+  --gold:#cfa65e;
+  --bad:#e5766c;
+  --ok:#a9cf92;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  color:var(--tx);
+  font:300 15px Montserrat,Arial,sans-serif;
+  min-height:100vh;
+  background:linear-gradient(118deg,#0b0b0c,#151516);
+}
 button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
 #app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
-nav{position:sticky;top:0;height:100vh;padding:20px 12px;border-right:1px solid var(--bd);background:#0a0a0bd9;display:flex;flex-direction:column;gap:4px}
-.logo{font-weight:300;letter-spacing:.4em;font-size:20px;padding:4px 12px 18px;color:var(--cy)}.logo small{display:block;letter-spacing:0;font-size:11px;color:var(--mu);overflow:hidden;text-overflow:ellipsis}
-nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;color:var(--mu);text-decoration:none;border:1px solid transparent;cursor:pointer}
-nav a.on{color:var(--cy);border-color:var(--bd)}
-main{padding:22px clamp(14px,3vw,34px) 40px;max-width:1150px;width:100%}
-h1{font-size:22px;font-weight:300;letter-spacing:.14em;margin:0 0 4px}h2{font-size:14px;font-weight:400;letter-spacing:.12em;margin:26px 0 10px;color:var(--cy)}p.sub{color:var(--mu);margin:0 0 18px}b{font-weight:500}
-.top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
-.chip{display:inline-flex;gap:7px;align-items:center;padding:5px 11px;border-radius:4px;border:1px solid var(--bd);font-size:12.5px;margin:0 0 4px 4px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}.ok .dot{background:var(--ok);box-shadow:0 0 8px var(--ok)}.wa .dot{background:var(--wa)}.bad .dot{background:var(--bad)}.wa{color:var(--wa)}.bad{color:var(--bad)}.ok{color:var(--ok)}
-.demo{background:#1d1608;border:1px solid #5b4818;color:var(--wa);padding:8px 12px;border-radius:4px;margin-bottom:14px;font-size:13px}
-.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
-.card{background:#111112d9;border:1px solid var(--bd);border-radius:4px;padding:14px}
-.card.click{cursor:pointer;transition:border-color .2s}.card.click:hover{border-color:var(--cy)}
-.big{font-size:28px;font-weight:300;letter-spacing:.04em}.mu{color:var(--mu);font-size:13px}.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #4d402555}.row:first-of-type{border-top:0}
-.tag{font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--bd);color:var(--mu)}.tag.sim{color:var(--wa);border-color:#7a5a1a}.tag.real{color:var(--ok);border-color:#4a6b3a}
-.sw{width:46px;height:26px;border-radius:99px;border:1px solid var(--bd);background:#0a0a0b;position:relative;cursor:pointer;flex:none;transition:.2s}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--mu);transition:.2s}
-.sw.on{background:#3a2c12;border-color:var(--cy)}.sw.on::after{left:23px;background:var(--cy)}.sw:disabled,.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn{background:transparent;border:1px solid var(--bd);border-radius:4px;padding:8px 14px;cursor:pointer}.btn:hover:not(:disabled){border-color:var(--cy)}.btn.p,.btn.on{background:#2b2111;color:var(--cy);border-color:var(--cy)}.btn.d{border-color:#7a2a35;color:var(--bad)}
-input,select{background:#0a0a0b;border:1px solid var(--bd);border-radius:99px;padding:8px 14px;width:100%;max-width:100%}
-input:focus,button:focus-visible,select:focus,nav a:focus-visible{outline:2px solid var(--cy);outline-offset:1px}
-.lbl{display:block;color:var(--mu);font-size:12.5px;margin:10px 0 4px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.ev{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:9px 0;border-top:1px solid #4d402555;align-items:center}
-.err{color:var(--bad);font-size:13px;margin-top:6px;min-height:1em}svg text{fill:var(--mu);font-size:10px;font-family:inherit}svg line{stroke:var(--mu)!important}
-.ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;flex:none}
-.plan{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.plan .card{padding:10px;text-align:center}.plan b{display:block}
-.pulse{animation:p 2s infinite}@keyframes p{50%{opacity:.45}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-input[type=range]{padding:0;border:0;background:none;-webkit-appearance:none;height:24px}
-input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--cy)}input[type=range]::-moz-range-track{height:2px;background:var(--cy)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--cy);margin-top:-7px}input[type=range]::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:var(--cy)}
-.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;margin:10px 0 6px}.hl,.hr{text-align:center}
-.clk{font-size:clamp(40px,8vw,66px);font-weight:200;letter-spacing:.14em}
-.mic{position:relative;width:170px;height:170px;margin:10px auto;background:none;border:0;color:var(--cy);cursor:pointer;border-radius:50%}
-.mic svg.r{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:var(--cy)}.mic .ic{width:52px;height:52px;position:absolute;left:59px;top:59px}
-.dt{font-size:40px;font-weight:200;letter-spacing:.1em;margin-top:8px}.dt small{display:block;font-size:12px;letter-spacing:.5em;color:var(--cy);margin-top:4px}
-.hex{position:relative;width:min(270px,75%);margin:0 auto}.hex svg{width:100%;display:block;fill:none;stroke:var(--cy);stroke-width:2}
-.hex div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
-.login-box{max-width:420px;margin:60px auto;padding:28px 24px;border:1px solid var(--bd);background:#111112d9;border-radius:4px;text-align:center}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));max-width:92vw;background:#17171a;border:1px solid var(--cy);border-radius:4px;padding:10px 16px;z-index:9;font-size:13px;display:none}#toast.bad{border-color:var(--bad);color:var(--bad)}
-@media(max-width:860px){#app{grid-template-columns:1fr}nav{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:#050505f2;backdrop-filter:blur(10px);border-top:1px solid var(--bd);border-right:0;z-index:5;justify-content:space-around}
-.logo{display:none}nav a{flex-direction:column;gap:1px;padding:5px 3px;font-size:10px;flex:1;text-align:center;min-width:0}main{padding-bottom:100px}.grid{grid-template-columns:1fr 1fr}.hero{grid-template-columns:1fr}}
-@media(max-width:480px){.grid{grid-template-columns:1fr}}
-</style></head><body>
-<div id="app"><nav id="nav"></nav><main id="main"></main></div><div id="toast" role="status"></div>
+nav{
+  padding:20px 12px;
+  border-right:1px solid var(--bd);
+  background:#090909;
+  min-height:100vh;
+}
+.logo{
+  color:var(--gold);
+  font-size:22px;
+  letter-spacing:7px;
+  padding:10px;
+}
+.logo small{
+  display:block;
+  color:var(--mu);
+  font-size:11px;
+  letter-spacing:1px;
+}
+nav a{
+  display:block;
+  padding:12px;
+  margin:4px 0;
+  border:1px solid transparent;
+  color:var(--mu);
+  cursor:pointer;
+  border-radius:4px;
+}
+nav a:hover,nav a.active{
+  color:var(--gold);
+  border-color:var(--bd);
+}
+main{padding:28px;width:100%;max-width:1200px}
+h1{font-size:23px;font-weight:300;letter-spacing:3px}
+h2{font-size:15px;color:var(--gold);font-weight:400;margin-top:25px}
+.sub,.muted{color:var(--mu);font-size:13px}
+.card{
+  background:#111112;
+  border:1px solid var(--bd);
+  border-radius:4px;
+  padding:16px;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+.row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 0;
+  border-bottom:1px solid #4d402555;
+}
+.btn{
+  background:transparent;
+  border:1px solid var(--bd);
+  padding:9px 14px;
+  border-radius:4px;
+}
+.btn:hover{border-color:var(--gold)}
+.primary{
+  color:var(--gold);
+  border-color:var(--gold);
+  background:#2b2111;
+}
+.danger{color:var(--bad);border-color:#7a2a35}
+input,select{
+  width:100%;
+  background:#090909;
+  border:1px solid var(--bd);
+  border-radius:4px;
+  padding:11px;
+  margin:5px 0 12px;
+}
+label{display:block;color:var(--mu);font-size:12px}
+.login-box{
+  width:100%;
+  max-width:420px;
+  padding:30px;
+  border:1px solid var(--bd);
+  background:#111112;
+  text-align:center;
+}
+.login-box .logo{margin-bottom:20px}
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:90px 20px 30px;
+}
+#adminAccess{
+  position:fixed;
+  top:18px;
+  right:20px;
+  z-index:20;
+}
+#adminPanel{
+  display:none;
+  position:absolute;
+  right:0;
+  top:45px;
+  width:290px;
+  padding:18px;
+  background:#111112;
+  border:1px solid var(--gold);
+}
+#adminPanel.open{display:block}
+#toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#171717;
+  border:1px solid var(--gold);
+  padding:12px 18px;
+  display:none;
+  z-index:30;
+}
+.error{color:var(--bad);font-size:13px;min-height:18px}
+.switch{
+  border:1px solid var(--bd);
+  border-radius:20px;
+  padding:7px 15px;
+  background:#090909;
+}
+.switch.on{background:#392b13;color:var(--gold);border-color:var(--gold)}
+.hidden{display:none!important}
+body.admin-mode #app{display:block}
+body.admin-mode nav{display:none}
+body.admin-mode main{margin:auto}
+@media(max-width:750px){
+  #app{display:block}
+  nav{
+    min-height:0;
+    height:auto;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    z-index:10;
+    display:flex;
+    overflow-x:auto;
+    padding:5px;
+    border-top:1px solid var(--bd);
+    border-right:0;
+  }
+  nav .logo{display:none}
+  nav a{font-size:10px;text-align:center;min-width:75px;padding:9px 5px}
+  main{padding:18px 14px 100px}
+  body.admin-mode main{padding:25px 14px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="adminAccess">
+  <button class="btn primary" id="adminToggle">ACCESO EXCLUSIVO</button>
+  <div id="adminPanel">
+    <h2>Administración ARGUSS</h2>
+    <label>Correo administrador</label>
+    <input id="adminEmail" type="email" placeholder="Correo administrador">
+    <label>Contraseña</label>
+    <input id="adminPassword" type="password" placeholder="Contraseña">
+    <button class="btn primary" id="adminLogin" style="width:100%">Ingresar</button>
+    <div class="error" id="adminError"></div>
+  </div>
+</div>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="logo">ARGUSS<small>CASA INTELIGENTE</small></div>
+    <h1>INICIAR SESIÓN</h1>
+    <p class="sub">Ingresá con tu cuenta autorizada.</p>
+    <label style="text-align:left">Correo electrónico</label>
+    <input id="loginEmail" type="email" placeholder="usuario@correo.com">
+    <label style="text-align:left">Contraseña</label>
+    <input id="loginPassword" type="password" placeholder="Contraseña">
+    <button class="btn primary" id="loginButton" style="width:100%">INGRESAR</button>
+    <div class="error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+
+<div id="toast"></div>
+
 <script>
 "use strict";
-/* ===== CONFIG (único lugar a tocar si el backend usa otra forma) ===== */
-const API='https://domotica-nube-1.onrender.com',TK='arguss.token',
- WRAP='state',      // PUT body = {state:{...}}. Poné null para enviar el objeto directo.
- POLL_MS=30000;
-/* ===== DATOS BASE ===== */
-const P={home:'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z',therm:'M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0zM12 9v7',sens:'M5 12a10 10 0 0 1 14 0M8 15a6 6 0 0 1 8 0M12 19h.01',shield:'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',gear:'M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M6 15v4',bed:'M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5M7 11.5h.01',shower:'M5 20V8a4 4 0 0 1 8 0M13 8h6M13 12v1M16 12v1M19 12v1M15 16v1M18 16v1',sink:'M3 12h18v2a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM12 12V6a2 2 0 0 1 4 0M8 19l-1 2M16 19l1 2',sofa:'M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M3 12a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3zM6 17v2M18 17v2',balcony:'M6 3h12v10H6zM12 3v10M3 13h18M3 21V13M8 13v8M13 13v8M18 13v8M21 13v8',door:'M6 3h12v18H6zM14 12h.01',flame:'M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z',snow:'M12 3v18M4 7.5l16 9M20 7.5l-16 9',alert:'M12 3l10 18H2zM12 10v5M12 18h.01',mic:'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM6 11a6 6 0 0 0 12 0M12 17v4M9 21h6'},
- ic=k=>`<svg class="ic" viewBox="0 0 24 24"><path d="${P[k]||P.door}"/></svg>`;
-const R0=[['dormitorio-1','Dormitorio 1','bed'],['dormitorio-2','Dormitorio 2','bed'],['bano','Baño','shower'],['antebano','Antebaño','sink'],['cocina-comedor','Cocina-comedor','sofa'],['sala-de-estar','Sala de estar','sofa'],['balcon','Balcón','balcony']],
- L0=[['luz-dorm1','dormitorio-1','Luz techo'],['luz-velador','dormitorio-1','Velador'],['luz-dorm2','dormitorio-2','Luz techo'],['luz-bano','bano','Luz baño'],['luz-antebano','antebano','Luz espejo'],['luz-cocina','cocina-comedor','Luz cocina'],['luz-comedor','cocina-comedor','Luz comedor'],['luz-estar','sala-de-estar','Luz estar'],['luz-balcon','balcon','Luz balcón']],
- S0=[['temp-estar','sala-de-estar','temp','Temp. sala de estar'],['temp-dorm1','dormitorio-1','temp','Temp. dormitorio 1'],['temp-dorm2','dormitorio-2','temp','Temp. dormitorio 2'],['hum-estar','sala-de-estar','hum','Humedad sala de estar'],['hum-bano','bano','hum','Humedad baño'],['o2-estar','sala-de-estar','o2','Oxígeno sala de estar'],['lux-estar','sala-de-estar','lux','Luz ambiente'],['door-principal','sala-de-estar','door','Puerta principal'],['door-balcon','balcon','door','Puerta balcón'],['win-dorm1','dormitorio-1','window','Ventana dormitorio 1'],['win-dorm2','dormitorio-2','window','Ventana dormitorio 2'],['mov-estar','sala-de-estar','motion','Movimiento sala'],['air-estar','cocina-comedor','air','Aire cocina-comedor']].map(a=>({id:a[0],room:a[1],kind:a[2],name:a[3]})),
- KINDS={temp:['Temperatura','°C'],hum:['Humedad','%'],o2:['Oxígeno (O₂)','%'],lux:['Luminosidad','lx'],door:['Puerta',''],window:['Ventana',''],motion:['Movimiento',''],air:['Calidad del aire','ICA']},
- CLK='sala-de-estar',CL0={mode:'auto',target:22,low:20,high:25,boiler:false,ac:false};
-/* ===== ESTADO ===== */
-let U=null,rooms=[],CLM={...CL0},hist=null,net='idle',phase='boot',authMode='login',bootErr='',busyAuth=false,lastOk=null,filt='',inflight={};
-const $=i=>document.getElementById(i),token=()=>{try{return localStorage.getItem(TK)}catch(e){return null}},
- setTok=t=>{try{t?localStorage.setItem(TK,t):localStorage.removeItem(TK)}catch(e){}},
- esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
- norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''),
- fmt=t=>{const d=new Date(t);return t&&!isNaN(d)?d.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—'};
-let tt;function toast(m,bad){const e=$('toast');e.textContent=m;e.className=bad?'bad':'';e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>e.style.display='none',bad?6000:2500)}
-/* ===== API ===== */
+
+/* CONFIGURACIÓN */
+const API = "https://domotica-nube-1.onrender.com";
+const TOKEN_KEY = "arguss.token";
+
+let currentUser = null;
+let rooms = [];
+let currentView = "inicio";
+let adminUsers = [];
+let historyData = [];
+let climate = {
+  mode:"auto",
+  target:22,
+  low:20,
+  high:25,
+  boiler:false,
+  ac:false
+};
+
+const $ = id => document.getElementById(id);
+
+function token(){
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function saveToken(value){
+  localStorage.setItem(TOKEN_KEY,value);
+}
+
+function clearToken(){
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function escapeHTML(value){
+  return String(value ?? "").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function notify(message){
+  $("toast").textContent = message;
+  $("toast").style.display = "block";
+  setTimeout(()=>$("toast").style.display="none",3000);
+}
+
 async function api(method,path,body){
- const c=new AbortController(),t=setTimeout(()=>c.abort(),45000),w=setTimeout(()=>{if(net!=='ok'){net='waking';render(1)}},4000),tk=token();
- try{
-  const r=await fetch(API+path,{method,signal:c.signal,headers:{'Content-Type':'application/json',...(tk?{Authorization:'Bearer '+tk}:{})},body:body?JSON.stringify(body):undefined});
-  let d=null;try{d=await r.json()}catch(e){}
-  if(!r.ok){const m=(d&&(d.error||d.message))||('Error '+r.status);
-   if(r.status===401&&!path.startsWith('/api/auth/')){net='ok';logout('Tu sesión venció. Iniciá sesión de nuevo.')}
-   const e=new Error(typeof m==='string'?m:'Error '+r.status);e.status=r.status;throw e}
-  net='ok';lastOk=Date.now();return d||{};
- }catch(e){
-  if(e.status)throw e;net='error';
-  throw new Error(e.name==='AbortError'?'El servidor tardó demasiado en responder.':'No se pudo conectar con el servidor (revisá tu conexión).');
- }finally{clearTimeout(t);clearTimeout(w)}}
-function once(k,fn){return inflight[k]||(inflight[k]=fn().finally(()=>{delete inflight[k]}))}
-/* ===== MODELO DE HABITACIONES ===== */
-function hydrate(r,raw){
- if(typeof raw==='string'){try{raw=JSON.parse(raw)}catch(e){raw={}}}
- raw=raw&&typeof raw==='object'?raw:{};
- if(raw.state&&typeof raw.state==='object'&&!raw.desired)raw=raw.state;
- const dl=(raw.desired&&raw.desired.lights)||{};
- r.raw=raw;r.rep=raw.reported&&typeof raw.reported==='object'?raw.reported:{};
- r.lights=L0.filter(l=>l[1]===r.def).map(l=>({id:l[0],name:(dl[l[0]]&&dl[l[0]].name)||l[2],on:!!(dl[l[0]]&&dl[l[0]].on)}));
- if(r.def===CLK)CLM={...CL0,...((raw.desired&&raw.desired.climate)||{})};
- r.saved=JSON.stringify(payload(r))}
-function payload(r){const l={};r.lights.forEach(d=>l[d.id]={name:d.name,on:d.on});
- const des={lights:l};if(r.def===CLK)des.climate={...CLM};
- return {...r.raw,schema:1,desired:des,reported:r.rep}}
-async function loadRooms(){return once('rooms',async()=>{
- const d=await api('GET','/api/rooms'),list=Array.isArray(d)?d:(d.rooms||[]),used=new Set(),out=[];
- const rs=x=>x.state||x.estado||x.state_json||x.data||x.states||{};
- R0.forEach(a=>{const f=list.find(x=>norm(x.roomKey||x.room_key||x.key||x.slug||x.id)===norm(a[0])||norm(x.name||x.label||x.nombre)===norm(a[1]));
-  if(f)used.add(f);const r={def:a[0],key:f?(f.roomKey||f.room_key||f.key||f.slug||f.id):a[0],name:a[1],icon:a[2],inCloud:!!f};hydrate(r,f?rs(f):{});out.push(r)});
- list.filter(x=>!used.has(x)).forEach(x=>{const k=x.roomKey||x.room_key||x.key||x.slug||x.id;if(k==null)return;const r={def:'x-'+k,key:k,name:x.name||x.label||String(k),icon:'door',inCloud:true};hydrate(r,rs(x));out.push(r)});
- rooms=out})}
-async function save(r){
- if(r.sv){r.again=1;return}r.sv=1;
- try{do{r.again=0;const b=payload(r);await api('PUT','/api/rooms/'+encodeURIComponent(r.key)+'/state',WRAP?{[WRAP]:b}:b);r.saved=JSON.stringify(b);r.inCloud=true}while(r.again);
-  toast('Guardado en la nube')}
- catch(e){hydrate(r,JSON.parse(r.saved));toast('No se guardó el cambio: '+e.message,1)}
- finally{r.sv=0;render(1)}}
-const roomOf=id=>rooms.find(r=>r.lights.some(d=>d.id===id)),rdef=d=>rooms.find(r=>r.def===d),climR=()=>rdef(CLK);
-function setLight(d,on){d.on=on;render(1);save(roomOf(d.id))}
-let ct;function setClim(p){Object.assign(CLM,p);if(p.boiler)CLM.ac=false;if(p.ac)CLM.boiler=false;render(1);clearTimeout(ct);ct=setTimeout(()=>climR()&&save(climR()),400)}
-/* Estado físico: solo existe si el ESP32 lo reportó (state.reported). Hoy no hay ESP32. */
-function phys(r,d){const x=r.rep.lights&&r.rep.lights[d.id];return x&&x.ts?(x.on===d.on?['ok','Confirmado por el equipo']:['wa','Pendiente de confirmación del equipo']):['','Sin confirmar · ESP32 no conectada']}
-function sval(s){const r=rdef(s.room),x=r&&r.rep.sensors&&r.rep.sensors[s.id];return x&&x.value!=null?x:null}
-const avgTemp=()=>{const a=S0.filter(s=>s.kind==='temp').map(sval).filter(Boolean);return a.length?a.reduce((x,s)=>x+ +s.value,0)/a.length:null};
-const sText=s=>{const x=sval(s);return !x?'Sin lectura':['door','window'].includes(s.kind)?(x.value?'Abierta':'Cerrada'):s.kind==='motion'?(x.value?'Detectado':'Sin movimiento'):x.value+' '+KINDS[s.kind][1]};
-const allL=()=>rooms.flatMap(r=>r.lights);
-/* ===== HISTORIAL ===== */
-async function loadHist(){return once('hist',async()=>{try{const d=await api('GET','/api/history');hist=Array.isArray(d)?d:(d.history||d.items||d.rows||[])}catch(e){hist=hist||[];toast('Historial: '+e.message,1)}render(1)})}
-function hRow(h){const t=h.created_at||h.createdAt||h.timestamp||h.ts||h.time,rk=h.room_key||h.roomKey||h.room,rr=rooms.find(r=>String(r.key)===String(rk)),
- det=h.details||h.changes||h.new_state||h.newState||h.state||h.payload,m=h.message||h.description||h.action||h.event||'Cambio guardado';
- const ds=det==null?'':typeof det==='string'?det:JSON.stringify(det);
- return `<div class="ev"><span>•</span><div>${esc(m)}${ds?`<div class="mu">${esc(ds.length>160?ds.slice(0,160)+'…':ds)}</div>`:''}<div class="mu">${esc(rr?rr.name:(rk||'—'))} · ${fmt(t)}</div></div><span class="tag sim">orden guardada</span></div>`}
-/* ===== VISTAS ===== */
-const NAV=[['dash','Inicio','home'],['rooms','Ambientes','grid'],['light','Luces','bulb'],['clima','Clima','therm'],['sens','Sensores','sens'],['seg','Historial','shield'],['cfg','Ajustes','gear']];
-function chips(){const m={idle:['wa','Nube: sin conectar'],waking:['wa','Nube: despertando servidor…'],ok:['ok','Nube conectada'],error:['bad','Nube: sin respuesta']}[net];
- return `<span class="chip ${m[0]}"><i class="dot ${net==='ok'?'pulse':''}"></i>${m[1]}</span><span class="chip wa"><i class="dot"></i>ESP32: no conectada</span>`}
-const head=(t,s)=>`<div class="top"><div><h1>${t}</h1><p class="sub">${s||''}</p></div><div>${chips()}</div></div><div class="demo">Los estados son órdenes guardadas en la nube. Ningún equipo físico confirmó su funcionamiento (ESP32 aún no conectada).</div>`;
-function lightRow(d){const r=roomOf(d.id),p=phys(r,d);return `<div class="row"><div>${esc(d.name)}<div class="mu">Orden: ${d.on?'encender':'apagar'} <span class="tag ${p[0]==='ok'?'real':'sim'}">${p[1]}</span></div></div><button class="sw ${d.on?'on':''}" role="switch" aria-checked="${d.on}" aria-label="${esc(d.name)}" data-act="tog" data-id="${esc(d.id)}" ${r.sv?'disabled':''}></button></div>`}
-function rmCard(r){const on=r.lights.filter(d=>d.on).length,t=S0.find(s=>s.room===r.def&&s.kind==='temp'),h=S0.find(s=>s.room===r.def&&s.kind==='hum'),tv=t&&sval(t),hv=h&&sval(h);
- return `<div class="card click" data-go="room-${esc(r.def)}" tabindex="0"><div class="top"><span style="font-size:26px">${ic(r.icon)}</span></div><b>${esc(r.name)}</b><div class="mu">${tv?tv.value+' °C':'— °C'} · ${hv?hv.value+' %':'— %'}</div><div class="mu">${ic('bulb')} ${on}/${r.lights.length} con orden de encender</div></div>`}
-function hero(){const t=avgTemp(),hv=CLM.boiler?ic('flame')+' Caldera (orden)':CLM.ac?ic('snow')+' Aire (orden)':'Climatización sin órdenes';
- return `<div class="hero"><div class="hl"><div class="clk" id="clk"></div><button class="mic" data-act="voice" aria-label="Comandos de voz"><svg class="r" viewBox="0 0 170 170"><circle cx="85" cy="85" r="80" stroke-width="3" stroke-dasharray="1 6" stroke-linecap="round"/><circle cx="85" cy="85" r="66" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round" opacity=".6"/></svg>${ic('mic')}</button><div class="mu" id="vmsg">Tocá el micrófono y decí: “prendé la luz del dormitorio 1”</div><div class="dt"><span id="dd"></span><small id="dw"></small></div></div><div class="hr"><div class="hex"><svg viewBox="0 0 220 190"><polygon points="62,4 158,4 214,95 158,186 62,186 6,95"/></svg><div><span class="mu">Temperatura medida</span><span class="big" style="font-size:38px">${t==null?'—':t.toFixed(1)+'°'}</span><span class="mu">${hv}</span></div></div><div style="max-width:280px;margin:16px auto 0"><div class="mu">Objetivo ${CLM.target} °C</div><input type="range" id="tg" min="16" max="30" step="0.5" value="${CLM.target}" aria-label="Temperatura objetivo"></div></div></div>`}
-const V={
-dash(){const t=avgTemp(),L=allL(),on=L.filter(d=>d.on);
- return head('ARGUSS','Tu casa, bajo control')+hero()+`<div class="grid">
- <div class="card"><div class="mu">Temperatura general</div><div class="big">${t==null?'—':t.toFixed(1)+' °C'}</div><div class="mu">${t==null?'Sin lecturas de sensores':'Promedio de sensores con lectura'}</div></div>
- <div class="card"><div class="mu">Iluminación (órdenes)</div><div class="big">${on.length}/${L.length}</div><div class="mu">con orden de encender</div></div>
- <div class="card"><div class="mu">Climatización</div><div class="big">${CLM.boiler?'Caldera':CLM.ac?'Aire':'En reposo'}</div><div class="mu">Modo ${CLM.mode==='auto'?'automático':'manual'} · objetivo ${CLM.target} °C</div></div>
- <div class="card"><div class="mu">Ambientes</div><div class="big">${rooms.length}</div><div class="mu">${S0.filter(sval).length} de ${S0.length} sensores con lectura</div></div></div>
- <h2>Ambientes</h2><div class="grid">${rooms.map(rmCard).join('')}</div>
- <h2>Plano esquemático</h2><div class="plan">${rooms.map(r=>{const o=r.lights.some(d=>d.on);return `<div class="card click" data-go="room-${esc(r.def)}" style="${o?'border-color:var(--cy)':''}">${ic(r.icon)}<b>${esc(r.name)}</b><span class="mu">${o?'orden: luz encendida':'orden: luz apagada'}</span></div>`}).join('')}</div>`},
-rooms(){return head('Ambientes','Tocá un ambiente para ver su detalle.')+`<div class="grid">${rooms.map(rmCard).join('')}</div>`},
-room(id){const r=rdef(id);if(!r)return head('Ambiente no encontrado','')+'<button class="btn" data-go="rooms">Volver</button>';
- return `<button class="btn" data-go="rooms">← Ambientes</button>`+head(ic(r.icon)+' '+esc(r.name),r.inCloud?'Guardado en tu cuenta.':'Aún sin datos en la nube: se creará al guardar el primer cambio.')+
- `<h2>Luces</h2><div class="card">${r.lights.map(lightRow).join('')||'<div class="mu">Sin luces asignadas.</div>'}</div><h2>Sensores</h2><div class="card">${S0.filter(s=>s.room===r.def).map(s=>`<div class="row"><span>${esc(s.name)}<div class="mu">${KINDS[s.kind][0]}</div></div><b>${sText(s)}</b></div>`).join('')||'<div class="mu">Sin sensores.</div>'}</div>`},
-light(){return head('Iluminación','Luces agrupadas por ambiente.')+`<div class="bar"><button class="btn p" data-act="all" data-v="1">Ordenar encender todas</button><button class="btn" data-act="all" data-v="0">Ordenar apagar todas</button></div>`+rooms.map(r=>r.lights.length?`<h2>${ic(r.icon)} ${esc(r.name)}</h2><div class="card">${r.lights.map(lightRow).join('')}</div>`:'').join('')},
-clima(){const t=avgTemp(),A=CLM.mode==='auto';
- return head('Climatización','Control de calderas y aire acondicionado.')+(t==null?'<div class="card wa" style="margin-bottom:10px">Sin lecturas de temperatura: no hay sensores reportando. El modo automático no puede decidir hasta que el termostato/ESP32 esté conectado.</div>':'')+
- `<div class="grid"><div class="card"><div class="mu">Temperatura medida</div><div class="big">${t==null?'—':t.toFixed(1)+' °C'}</div></div>
- <div class="card"><div class="mu">Temperatura objetivo (guardada)</div><div class="bar" style="align-items:center"><button class="btn" data-act="tgt" data-v="-0.5">−</button><span class="big">${CLM.target} °C</span><button class="btn" data-act="tgt" data-v="0.5">+</button></div></div>
- <div class="card"><div class="mu">Órdenes guardadas · equipo sin confirmar</div>
- <div class="row"><span>${ic('flame')} Calderas</span><button class="btn ${CLM.boiler?'on':''}" data-act="boiler" ${A?'disabled':''}>${CLM.boiler?'ORDEN: ENCENDER':'ORDEN: APAGAR'}</button></div>
- <div class="row"><span>${ic('snow')} Aire acondicionado</span><button class="btn ${CLM.ac?'on':''}" data-act="ac" ${A?'disabled':''}>${CLM.ac?'ORDEN: ENCENDER':'ORDEN: APAGAR'}</button></div></div></div>
- <h2>Modo de control</h2><div class="bar"><button class="btn ${A?'on':''}" data-act="mode" data-v="auto">Automático</button><button class="btn ${A?'':'on'}" data-act="mode" data-v="manual">Manual</button></div>
- <div class="mu">${A?`Automático: el termostato decidirá con los umbrales (${CLM.low} °C / ${CLM.high} °C). Hoy solo se guarda la configuración; no hay termostato conectado.`:'Manual: podés guardar órdenes para caldera y aire con los botones.'}</div>
- <h2>Umbrales automáticos</h2><div class="card"><label class="lbl">Caldera por debajo de (°C)</label><input type="number" step="0.5" id="th-low" value="${CLM.low}"><label class="lbl">Aire acondicionado desde (°C)</label><input type="number" step="0.5" id="th-high" value="${CLM.high}"><div class="bar"><button class="btn p" data-act="th">Guardar umbrales</button></div><div class="err" id="th-err"></div></div>`},
-sens(){const g={};S0.forEach(s=>(g[s.kind]=g[s.kind]||[]).push(s));
- return head('Sensores','Última lectura reportada por el equipo.')+Object.keys(KINDS).map(k=>`<h2>${KINDS[k][0]}</h2><div class="card">${g[k].map(s=>{const x=sval(s),r=rdef(s.room);return `<div class="row"><div>${esc(s.name)}<div class="mu">${esc(r?r.name:'')} · ${x?fmt(x.ts):'sin conexión'}</div></div><b>${sText(s)}</b></div>`}).join('')}</div>`).join('')+'<div class="mu" style="margin-top:12px">Sin lecturas hasta conectar la ESP32. No se muestran valores inventados.</div>'},
-seg(){const E=(hist||[]).filter(h=>!filt||String(h.room_key||h.roomKey||h.room)===filt);
- return head('Historial','Cambios guardados en tu cuenta (GET /api/history).')+`<div class="bar"><select id="f-room" style="max-width:260px"><option value="">Todos los ambientes</option>${rooms.map(r=>`<option value="${esc(r.key)}" ${String(filt)===String(r.key)?'selected':''}>${esc(r.name)}</option>`).join('')}</select><button class="btn" data-act="hist">Actualizar</button></div><div class="card">${hist===null?'<div class="mu">Cargando…</div>':E.length?E.map(hRow).join(''):'<div class="mu">Todavía no hay cambios guardados.</div>'}</div>`},
-cfg(){return head('Ajustes','Cuenta y conexión.')+`<h2>Sesión</h2><div class="card"><div class="row"><span>Usuario</span><b>${esc(U&&(U.email||U.name)||'—')}</b></div><div class="row"><span>Servidor</span><span class="mu">${esc(API)}</span></div><div class="row"><span>Última respuesta</span><span class="mu">${fmt(lastOk)}</span></div><div class="bar"><button class="btn" data-act="refresh">Actualizar desde la nube</button><button class="btn d" data-act="logout">Cerrar sesión</button></div></div>
- <h2>Hardware</h2><div class="card"><div class="row"><span>ESP32</span><span class="chip wa"><i class="dot"></i>No conectada</span></div><div class="mu">Cuando exista, el equipo escribirá su estado real en <code>state.reported</code>; la app solo lo lee y lo muestra como confirmado.</div></div>`}};
-/* ===== AUTH ===== */
-function authView(){const reg=authMode==='register';
- return `<div class="login-box"><div class="logo">ARGUSS<small>Casa inteligente</small></div><h1 style="margin-top:20px">${reg?'Crear cuenta':'Iniciar sesión'}</h1><p class="mu">${net==='waking'?'El servidor está despertando, puede tardar hasta un minuto…':'Tus datos se guardan en tu cuenta.'}</p>
- <div style="text-align:left;margin-top:15px"><label class="lbl" for="a-mail">Correo</label><input id="a-mail" type="email" autocomplete="email" placeholder="tu@correo.com"><label class="lbl" for="a-pass">Contraseña</label><input id="a-pass" type="password" autocomplete="${reg?'new-password':'current-password'}" placeholder="Mínimo 8 caracteres">
- ${reg?'<label class="lbl" for="a-pass2">Repetir contraseña</label><input id="a-pass2" type="password" autocomplete="new-password">':''}
- <button class="btn p" id="a-go" style="width:100%;margin-top:15px" data-act="${reg?'register':'login'}">${reg?'Registrarme':'Ingresar'}</button><div class="err" id="a-err">${esc(bootErr)}</div>
- <div class="bar" style="justify-content:center"><button class="btn" data-act="switch">${reg?'Ya tengo cuenta':'Crear cuenta nueva'}</button></div></div></div>`}
-async function authSubmit(reg){
- if(busyAuth)return;const e=$('a-err'),m=$('a-mail').value.trim(),p=$('a-pass').value;
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m)){e.textContent='Ingresá un correo válido.';return}
- if(p.length<8){e.textContent='La contraseña debe tener al menos 8 caracteres.';return}
- if(reg&&p!==$('a-pass2').value){e.textContent='Las contraseñas no coinciden.';return}
- busyAuth=true;$('a-go').disabled=true;e.textContent='';
- try{let d=await api('POST',reg?'/api/auth/register':'/api/auth/login',{email:m,password:p});
-  let tk=d.token||d.accessToken||d.jwt;
-  if(!tk&&reg){d=await api('POST','/api/auth/login',{email:m,password:p});tk=d.token||d.accessToken||d.jwt}
-  if(!tk)throw new Error('El servidor no devolvió un token.');
-  setTok(tk);U=d.user||{email:m};bootErr='';await enter()}
- catch(x){e.textContent=x.message;const b=$('a-go');if(b)b.disabled=false}
- finally{busyAuth=false}}
-async function enter(){phase='app';render();try{const d=await api('GET','/api/me');U=d.user||d;await loadRooms()}catch(e){if(token()){toast(e.message,1)}}render()}
-function logout(msg){setTok(null);U=null;rooms=[];hist=null;CLM={...CL0};phase='auth';bootErr=msg||'';net='idle';render()}
+  const response = await fetch(API+path,{
+    method,
+    headers:{
+      "Content-Type":"application/json",
+      ...(token()?{Authorization:"Bearer "+token()}:{})
+    },
+    body:body ? JSON.stringify(body) : undefined
+  });
+
+  let data={};
+  try{data=await response.json()}catch(e){}
+
+  if(!response.ok){
+    throw new Error(data.error || data.message || "Error "+response.status);
+  }
+
+  return data;
+}
+
+/* AMBIENTES */
+const roomDefinitions = [
+  ["dormitorio-1","Dormitorio 1"],
+  ["dormitorio-2","Dormitorio 2"],
+  ["bano","Baño"],
+  ["antebano","Antebaño"],
+  ["cocina-comedor","Cocina-comedor"],
+  ["sala-de-estar","Sala de estar"],
+  ["balcon","Balcón"]
+];
+
+const lightsDefinitions = [
+  ["luz-dorm1","dormitorio-1","Luz dormitorio 1"],
+  ["luz-velador","dormitorio-1","Velador"],
+  ["luz-dorm2","dormitorio-2","Luz dormitorio 2"],
+  ["luz-bano","bano","Luz baño"],
+  ["luz-antebano","antebano","Luz antebaño"],
+  ["luz-cocina","cocina-comedor","Luz cocina"],
+  ["luz-comedor","cocina-comedor","Luz comedor"],
+  ["luz-estar","sala-de-estar","Luz sala de estar"],
+  ["luz-balcon","balcon","Luz balcón"]
+];
+
+function defaultState(){
+  return {schema:1,desired:{lights:{},climate:{}},reported:{}};
+}
+
+function getRoomState(room){
+  let raw=room.state || {};
+  if(typeof raw==="string"){
+    try{raw=JSON.parse(raw)}catch(e){raw={}}
+  }
+  return raw.state || raw;
+}
+
+function getRoomKey(room){
+  return room.roomKey || room.room_key || room.key || room.slug || room.id;
+}
+
+async function loadRooms(){
+  const data=await api("GET","/api/rooms");
+  const list=Array.isArray(data)?data:(data.rooms||[]);
+
+  rooms=roomDefinitions.map(def=>{
+    const found=list.find(x=>{
+      const key=getRoomKey(x);
+      return String(key)===def[0] ||
+        String(x.name||x.label||"").toLowerCase()===def[1].toLowerCase();
+    });
+
+    const raw=found?getRoomState(found):defaultState();
+
+    return {
+      key:found?getRoomKey(found):def[0],
+      id:def[0],
+      name:def[1],
+      state:raw,
+      lights:lightsDefinitions
+        .filter(l=>l[1]===def[0])
+        .map(l=>({
+          id:l[0],
+          name:l[2],
+          on:!!(raw.desired?.lights?.[l[0]]?.on)
+        }))
+    };
+  });
+
+  const central=rooms.find(r=>r.id==="sala-de-estar");
+  if(central?.state?.desired?.climate){
+    climate={...climate,...central.state.desired.climate};
+  }
+}
+
+function roomPayload(room){
+  const lights={};
+  room.lights.forEach(l=>{
+    lights[l.id]={name:l.name,on:l.on};
+  });
+
+  return {
+    ...room.state,
+    schema:1,
+    desired:{
+      ...(room.state.desired||{}),
+      lights,
+      ...(room.id==="sala-de-estar"?{climate:{...climate}}:{})
+    },
+    reported:room.state.reported||{}
+  };
+}
+
+async function saveRoom(room){
+  try{
+    const payload=roomPayload(room);
+    await api("PUT","/api/rooms/"+encodeURIComponent(room.key)+"/state",{
+      state:payload
+    });
+    room.state=payload;
+    notify("Cambio guardado en la nube.");
+  }catch(error){
+    notify("No se pudo guardar: "+error.message);
+  }
+}
+
+/* AUTENTICACIÓN */
+async function login(email,password,target){
+  const data=await api("POST","/api/auth/login",{email,password});
+  const tk=data.token||data.accessToken||data.jwt;
+
+  if(!tk)throw new Error("El servidor no devolvió un token.");
+
+  saveToken(tk);
+
+  const me=await api("GET","/api/me");
+  currentUser=me.user||me;
+
+  const isAdmin=currentUser.role==="admin";
+
+  if(target==="admin"&&!isAdmin){
+    clearToken();
+    currentUser=null;
+    throw new Error("Esta cuenta no tiene permisos de administrador.");
+  }
+
+  if(target==="normal"&&isAdmin){
+    clearToken();
+    currentUser=null;
+    throw new Error("Ingresá desde ACCESO EXCLUSIVO.");
+  }
+
+  if(isAdmin){
+    document.body.classList.add("admin-mode");
+    $("loginScreen").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    $("adminAccess").classList.add("hidden");
+    await loadAdminUsers();
+    renderAdmin();
+  }else{
+    document.body.classList.remove("admin-mode");
+    $("adminAccess").classList.remove("hidden");
+    $("loginScreen").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    await loadRooms();
+    currentView="inicio";
+    render();
+  }
+}
+
+$("loginButton").addEventListener("click",async()=>{
+  $("loginError").textContent="";
+  try{
+    await login($("loginEmail").value.trim(),$("loginPassword").value,"normal");
+  }catch(e){
+    $("loginError").textContent=e.message;
+  }
+});
+
+$("adminToggle").addEventListener("click",()=>{
+  $("adminPanel").classList.toggle("open");
+});
+
+$("adminLogin").addEventListener("click",async()=>{
+  $("adminError").textContent="";
+  try{
+    await login($("adminEmail").value.trim(),$("adminPassword").value,"admin");
+  }catch(e){
+    $("adminError").textContent=e.message;
+  }
+});
+
+/* ADMINISTRACIÓN EXCLUSIVA */
+async function loadAdminUsers(){
+  const data=await api("GET","/api/admin/users");
+  adminUsers=Array.isArray(data)?data:(data.users||[]);
+}
+
+function renderAdmin(){
+  document.body.classList.add("admin-mode");
+  $("nav").innerHTML="";
+
+  $("main").innerHTML=`
+    <div style="max-width:950px;margin:35px auto">
+      <div class="logo">ARGUSS<small>ADMINISTRACIÓN EXCLUSIVA</small></div>
+      <h1>Usuarios y contraseñas</h1>
+      <p class="sub">Administración de accesos de los tres departamentos.</p>
+
+      <div class="card">
+        <h2>Crear usuario</h2>
+
+        <label>Correo electrónico</label>
+        <input id="newEmail" type="email" placeholder="usuario@correo.com">
+
+        <label>Contraseña inicial</label>
+        <input id="newPassword" type="password" placeholder="Mínimo 8 caracteres">
+
+        <label>Departamento</label>
+        <select id="newDepartment">
+          <option value="1">Departamento 1</option>
+          <option value="2">Departamento 2</option>
+          <option value="3">Departamento 3</option>
+        </select>
+
+        <button class="btn primary" id="createUser">CREAR USUARIO</button>
+        <div class="error" id="createError"></div>
+      </div>
+
+      <h2>Usuarios registrados</h2>
+
+      <div class="grid">
+        ${adminUsers.map(user=>`
+          <div class="card">
+            <b>${escapeHTML(user.email)}</b>
+            <p class="muted">Departamento ${escapeHTML(user.department)}</p>
+
+            <label>Nueva contraseña</label>
+            <input type="password" id="pass-${escapeHTML(user.id)}"
+              placeholder="Nueva contraseña">
+
+            <button class="btn" data-password="${escapeHTML(user.id)}">
+              CAMBIAR CONTRASEÑA
+            </button>
+
+            <button class="btn danger" data-delete="${escapeHTML(user.id)}">
+              ELIMINAR USUARIO
+            </button>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="row">
+        <button class="btn" id="reloadUsers">Actualizar lista</button>
+        <button class="btn danger" id="adminLogout">Cerrar sesión</button>
+      </div>
+    </div>
+  `;
+}
+
+$("main").addEventListener("click",async event=>{
+  if(currentUser?.role!=="admin")return;
+
+  if(event.target.id==="createUser"){
+    const email=$("newEmail").value.trim();
+    const password=$("newPassword").value;
+    const department=Number($("newDepartment").value);
+
+    if(!email||password.length<8){
+      $("createError").textContent="Completá el correo y una contraseña de al menos 8 caracteres.";
+      return;
+    }
+
+    try{
+      await api("POST","/api/admin/users",{email,password,department});
+      await loadAdminUsers();
+      renderAdmin();
+      notify("Usuario creado.");
+    }catch(e){
+      $("createError").textContent=e.message;
+    }
+  }
+
+  if(event.target.id==="reloadUsers"){
+    try{
+      await loadAdminUsers();
+      renderAdmin();
+    }catch(e){notify(e.message)}
+  }
+
+  if(event.target.id==="adminLogout")logout();
+
+  const passButton=event.target.closest("[data-password]");
+  if(passButton){
+    const id=passButton.dataset.password;
+    const password=$("pass-"+id).value;
+
+    if(password.length<8){
+      notify("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
+    try{
+      await api("POST",`/api/admin/users/${encodeURIComponent(id)}/password`,{password});
+      notify("Contraseña actualizada.");
+      await loadAdminUsers();
+      renderAdmin();
+    }catch(e){notify(e.message)}
+  }
+
+  const deleteButton=event.target.closest("[data-delete]");
+  if(deleteButton){
+    if(!confirm("¿Querés eliminar este usuario?"))return;
+
+    try{
+      await api("DELETE",`/api/admin/users/${encodeURIComponent(deleteButton.dataset.delete)}`);
+      await loadAdminUsers();
+      renderAdmin();
+      notify("Usuario eliminado.");
+    }catch(e){notify(e.message)}
+  }
+});
+
+/* NAVEGACIÓN NORMAL */
+const navItems=[
+  ["inicio","Inicio"],
+  ["ambientes","Ambientes"],
+  ["luces","Iluminación"],
+  ["clima","Climatización"],
+  ["sensores","Sensores"],
+  ["historial","Historial"],
+  ["ajustes","Ajustes"]
+];
+
+function renderNav(){
+  $("nav").innerHTML=`
+    <div class="logo">ARGUSS<small>${escapeHTML(currentUser?.email||"")}</small></div>
+    ${navItems.map(item=>`
+      <a data-view="${item[0]}" class="${currentView===item[0]?"active":""}">
+        ${item[1]}
+      </a>
+    `).join("")}
+  `;
+}
+
+function header(title,description){
+  return `<h1>${title}</h1><p class="sub">${description}</p>`;
+}
+
+function roomCard(room){
+  return `
+    <div class="card">
+      <h2>${room.name}</h2>
+      <p class="muted">${room.lights.filter(l=>l.on).length} luces encendidas por orden</p>
+      <button class="btn" data-room="${room.id}">VER AMBIENTE</button>
+    </div>
+  `;
+}
+
+function lightControl(room,light){
+  return `
+    <div class="row">
+      <span>${escapeHTML(light.name)}</span>
+      <button class="switch ${light.on?"on":""}"
+        data-light="${escapeHTML(light.id)}">
+        ${light.on?"ENCENDIDA":"APAGADA"}
+      </button>
+    </div>
+  `;
+}
+
+function render(){
+  if(currentUser?.role==="admin"){
+    renderAdmin();
+    return;
+  }
+
+  renderNav();
+  const main=$("main");
+
+  if(currentView==="inicio"){
+    main.innerHTML=header("ARGUSS","Tu casa, bajo control.")+
+      `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
+  }
+
+  if(currentView==="ambientes"){
+    main.innerHTML=header("Ambientes","Tus siete ambientes.")+
+      `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
+  }
+
+  if(currentView==="luces"){
+    main.innerHTML=header("Iluminación","Control de luces por ambiente.")+
+      rooms.map(room=>`
+        <h2>${room.name}</h2>
+        <div class="card">
+          ${room.lights.map(light=>lightControl(room,light)).join("")}
+        </div>
+      `).join("");
+  }
+
+  if(currentView.startsWith("room:")){
+    const room=rooms.find(r=>r.id===currentView.split(":")[1]);
+    if(!room){currentView="ambientes";render();return;}
+
+    main.innerHTML=header(room.name,"Control del ambiente.")+
+      `<div class="card">${room.lights.map(light=>lightControl(room,light)).join("")}</div>`;
+  }
+
+  if(currentView==="clima"){
+    main.innerHTML=header("Climatización","Configuración de calderas y aires acondicionados.")+
+      `<div class="grid">
+        <div class="card">
+          <h2>Temperatura objetivo</h2>
+          <div class="row">
+            <button class="btn" data-target="-0.5">−</button>
+            <b>${climate.target} °C</b>
+            <button class="btn" data-target="0.5">+</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Calderas</h2>
+          <button class="switch ${climate.boiler?"on":""}" data-climate="boiler">
+            ${climate.boiler?"ORDEN: ENCENDER":"ORDEN: APAGAR"}
+          </button>
+        </div>
+
+        <div class="card">
+          <h2>Aires acondicionados</h2>
+          <button class="switch ${climate.ac?"on":""}" data-climate="ac">
+            ${climate.ac?"ORDEN: ENCENDER":"ORDEN: APAGAR"}
+          </button>
+        </div>
+
+        <div class="card">
+          <h2>Modo de control</h2>
+          <select id="climateMode">
+            <option value="auto" ${climate.mode==="auto"?"selected":""}>Automático</option>
+            <option value="manual" ${climate.mode==="manual"?"selected":""}>Manual</option>
+          </select>
+          <label>Umbral caldera</label>
+          <input id="lowTemp" type="number" value="${climate.low}">
+          <label>Umbral aire acondicionado</label>
+          <input id="highTemp" type="number" value="${climate.high}">
+          <button class="btn primary" id="saveClimate">Guardar configuración</button>
+        </div>
+      </div>
+      <p class="muted">Las órdenes se guardan en la nube. Todavía requieren la conexión y configuración del hardware para controlar equipos físicos.</p>`;
+  }
+
+  if(currentView==="sensores"){
+    main.innerHTML=header("Sensores","Lecturas reportadas por los equipos.")+
+      `<div class="card">
+        <p class="muted">Todavía no hay lecturas físicas confirmadas. La ESP32 debe enviar los datos a la nube.</p>
+        <p>Temperatura: —</p>
+        <p>Humedad: —</p>
+        <p>Oxígeno: —</p>
+        <p>Luminosidad: —</p>
+      </div>`;
+  }
+
+  if(currentView==="historial"){
+    main.innerHTML=header("Historial","Cambios registrados en la nube.")+
+      `<div class="card" id="historyContent">Cargando historial...</div>`;
+    loadHistory();
+  }
+
+  if(currentView==="ajustes"){
+    main.innerHTML=header("Ajustes","Tu cuenta.")+
+      `<div class="card">
+        <div class="row"><span>Usuario</span><b>${escapeHTML(currentUser?.email)}</b></div>
+        <div class="row"><span>Departamento</span><b>${escapeHTML(currentUser?.department)}</b></div>
+        <div class="row"><span>Servidor</span><span class="muted">ARGUSS Cloud</span></div>
+        <button class="btn danger" id="logoutButton">Cerrar sesión</button>
+      </div>`;
+  }
+}
+
+async function persistClimate(){
+  const room=rooms.find(r=>r.id==="sala-de-estar");
+  if(!room)return;
+  await saveRoom(room);
+}
+
+async function loadHistory(){
+  try{
+    const data=await api("GET","/api/history");
+    historyData=Array.isArray(data)?data:(data.history||data.items||[]);
+    const el=$("historyContent");
+    if(el){
+      el.innerHTML=historyData.length
+        ?historyData.map(h=>`<div class="row">${escapeHTML(h.message||h.action||"Cambio registrado")}<span class="muted">${escapeHTML(h.created_at||"")}</span></div>`).join("")
+        :"Todavía no hay cambios registrados.";
+    }
+  }catch(e){
+    const el=$("historyContent");
+    if(el)el.textContent=e.message;
+  }
+}
+
+/* EVENTOS DE LA APLICACIÓN NORMAL */
+$("nav").addEventListener("click",event=>{
+  const link=event.target.closest("[data-view]");
+  if(link){
+    currentView=link.dataset.view;
+    render();
+  }
+});
+
+$("main").addEventListener("click",async event=>{
+  if(currentUser?.role==="admin")return;
+
+  const roomButton=event.target.closest("[data-room]");
+  if(roomButton){
+    currentView="room:"+roomButton.dataset.room;
+    render();
+    return;
+  }
+
+  const lightButton=event.target.closest("[data-light]");
+  if(lightButton){
+    const room=rooms.find(r=>r.lights.some(l=>l.id===lightButton.dataset.light));
+    const light=room?.lights.find(l=>l.id===lightButton.dataset.light);
+    if(light&&room){
+      light.on=!light.on;
+      render();
+      await saveRoom(room);
+    }
+    return;
+  }
+
+  const climateButton=event.target.closest("[data-climate]");
+  if(climateButton){
+    const key=climateButton.dataset.climate;
+    climate[key]=!climate[key];
+    if(key==="boiler"&&climate.boiler)climate.ac=false;
+    if(key==="ac"&&climate.ac)climate.boiler=false;
+    render();
+    await persistClimate();
+    return;
+  }
+
+  const targetButton=event.target.closest("[data-target]");
+  if(targetButton){
+    climate.target=Math.max(16,Math.min(30,climate.target+Number(targetButton.dataset.target)));
+    render();
+    await persistClimate();
+    return;
+  }
+
+  if(event.target.id==="saveClimate"){
+    const low=Number($("lowTemp").value);
+    const high=Number($("highTemp").value);
+
+    if(low>=high){notify("El umbral de caldera debe ser menor que el del aire.");return;}
+
+    climate.low=low;
+    climate.high=high;
+    climate.mode=$("climateMode").value;
+    await persistClimate();
+    render();
+  }
+
+  if(event.target.id==="logoutButton")logout();
+});
+
+function logout(){
+  clearToken();
+  currentUser=null;
+  rooms=[];
+  adminUsers=[];
+  document.body.classList.remove("admin-mode");
+  $("adminAccess").classList.remove("hidden");
+  $("adminPanel").classList.remove("open");
+  $("app").classList.add("hidden");
+  $("loginScreen").classList.remove("hidden");
+  $("loginEmail").value="";
+  $("loginPassword").value="";
+  $("adminEmail").value="";
+  $("adminPassword").value="";
+}
+
+/* ARRANQUE */
 async function boot(){
- if(!token()){phase='auth';render();return}
- render();try{const d=await api('GET','/api/me');U=d.user||d;await loadRooms();phase='app'}
- catch(e){if(!token()){return}phase='retry';bootErr=e.message}render()}
-/* ===== RENDER ===== */
-const route=()=>{const h=(location.hash||'#dash').slice(1);return h.startsWith('room-')?['room',h.slice(5)]:[V[h]?h:'dash']};
-function updClk(){const n=new Date();if(!$('clk'))return;$('clk').textContent=n.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});$('dd').textContent=n.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}).replace('.','').toUpperCase();$('dw').textContent=n.toLocaleDateString('es-AR',{weekday:'long'}).toUpperCase()}
-setInterval(updClk,1000);
-function render(keep){
- const m=$('main'),ae=document.activeElement;
- if(phase==='boot'){$('nav').innerHTML='';m.innerHTML='<div class="login-box"><div class="logo">ARGUSS</div><p class="mu">'+(net==='waking'?'El servidor está despertando, puede tardar hasta un minuto…':'Recuperando tu sesión…')+'</p></div>';return}
- if(phase==='retry'){$('nav').innerHTML='';m.innerHTML=`<div class="login-box"><div class="logo">ARGUSS</div><p class="err">${esc(bootErr)}</p><div class="bar" style="justify-content:center"><button class="btn p" data-act="retry">Reintentar</button><button class="btn" data-act="logout">Cerrar sesión</button></div></div>`;return}
- if(phase==='auth'){$('nav').innerHTML='';if(!keep||!$('a-mail')||m.dataset.mode!==authMode){m.innerHTML=authView();m.dataset.mode=authMode}else{const p=m.querySelector('.mu');if(p&&net==='waking')p.textContent='El servidor está despertando, puede tardar hasta un minuto…'}return}
- const [v,a]=route();delete m.dataset.mode;
- $('nav').innerHTML='<div class="logo">ARGUSS<small>'+esc(U&&U.email||'')+'</small></div>'+NAV.map(n=>`<a data-go="${n[0]}" tabindex="0" class="${(v===n[0]||(v==='room'&&n[0]==='rooms'))?'on':''}"><span>${ic(n[2])}</span>${n[1]}</a>`).join('');
- if(keep&&ae&&ae.matches&&ae.matches('input:not([type=range]),select'))return;
- const y=scrollY;m.innerHTML=V[v](a);updClk();if(keep)scrollTo(0,y);
- if(v==='seg'&&hist===null)loadHist()}
-const go=h=>{location.hash=h;scrollTo(0,0)};
-window.addEventListener('hashchange',()=>render());
-document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(e.target.id==='a-pass'||e.target.id==='a-pass2'||e.target.id==='a-mail')authSubmit(authMode==='register');else if(e.target.dataset&&e.target.dataset.go)go(e.target.dataset.go)}});
-document.addEventListener('change',e=>{const t=e.target;
- if(t.id==='tg')setClim({target:+t.value});else if(t.id==='f-room'){filt=t.value;render()}});
-function voice(){const R=window.SpeechRecognition||window.webkitSpeechRecognition,o=$('vmsg');if(!R){o.textContent='Este navegador no admite voz. Probá con Chrome o Safari.';return}
- const r=new R();r.lang='es-AR';o.textContent='Escuchando…';r.onerror=()=>{o.textContent='No te escuché. Probá de nuevo.'};
- r.onresult=e=>{const q=e.results[0][0].transcript,N=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\buno\b/g,'1').replace(/\bdos\b/g,'2'),Q=N(q).split(/\s+/),on=/prend|encend/.test(N(q)),off=/apag/.test(N(q));
-  if(!on&&!off){o.textContent='“'+q+'” · Decí prendé o apagá y el ambiente.';return}
-  let T;if(Q.includes('todas')){if(!confirm((on?'¿Ordenar encender':'¿Ordenar apagar')+' todas las luces?'))return;T=rooms}
-  else{const sc=rooms.map(r=>[r,N(r.name).split(/[-\s]+/).filter(w=>w.length>2&&Q.includes(w)).length]),m=Math.max(...sc.map(x=>x[1]),0),hit=sc.filter(x=>x[1]===m&&m>0);if(hit.length!==1){o.textContent='“'+q+'” · No identifiqué el ambiente.';return}T=[hit[0][0]]}
-  let n=0;T.forEach(r=>{let ch=0;r.lights.forEach(d=>{if(d.on!==on){d.on=on;ch++}});if(ch){n+=ch;save(r)}});render(1);$('vmsg').textContent='“'+q+'” · '+(n?n+' orden(es) guardada(s)':'Sin cambios')};r.start()}
-document.addEventListener('click',async e=>{
- const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
- const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
- if(a==='login'||a==='register'){authSubmit(a==='register');return}
- if(a==='switch'){authMode=authMode==='login'?'register':'login';bootErr='';render();return}
- if(a==='logout'){logout();return}
- if(a==='retry'){phase='boot';net='idle';boot();return}
- if(a==='tog'){const r=roomOf(id),d=r&&r.lights.find(x=>x.id===id);if(d&&!r.sv)setLight(d,!d.on);return}
- if(a==='all'){const on=b.dataset.v==='1';if(!confirm((on?'¿Ordenar encender':'¿Ordenar apagar')+' todas las luces de la casa?'))return;
-  rooms.forEach(r=>{let ch=0;r.lights.forEach(d=>{if(d.on!==on){d.on=on;ch++}});if(ch)save(r)});render(1);return}
- if(a==='boiler'){setClim({boiler:!CLM.boiler});return}
- if(a==='ac'){setClim({ac:!CLM.ac});return}
- if(a==='tgt'){const v=+(CLM.target+ +b.dataset.v).toFixed(1);if(v>=16&&v<=30)setClim({target:v});return}
- if(a==='mode'){setClim({mode:b.dataset.v});return}
- if(a==='th'){const l=+$('th-low').value,h=+$('th-high').value,er=$('th-err');
-  if(isNaN(l)||isNaN(h)||l>=h){er.textContent='El límite de caldera debe ser menor que el del aire acondicionado.';return}setClim({low:l,high:h});er.textContent='';return}
- if(a==='hist'){hist=null;render(1);loadHist();return}
- if(a==='refresh'){try{await loadRooms();toast('Datos actualizados')}catch(x){toast(x.message,1)}render(1);return}
- if(a==='voice'){voice();return}});
-/* ===== ARRANQUE ===== */
-setInterval(async()=>{if(phase!=='app'||document.hidden||rooms.some(r=>r.sv)||ct)return;try{await loadRooms();render(1)}catch(e){render(1)}},POLL_MS);
+  if(!token())return;
+
+  try{
+    const me=await api("GET","/api/me");
+    currentUser=me.user||me;
+
+    if(currentUser.role==="admin"){
+      $("loginScreen").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      $("adminAccess").classList.add("hidden");
+      document.body.classList.add("admin-mode");
+      await loadAdminUsers();
+      renderAdmin();
+    }else{
+      $("loginScreen").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      await loadRooms();
+      render();
+    }
+  }catch(e){
+    clearToken();
+    currentUser=null;
+  }
+}
+
 boot();
-</script></body></html>
+</script>
+</body>
+</html>
 
