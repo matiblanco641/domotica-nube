@@ -1,3 +1,4 @@
+
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -13,6 +14,7 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 const DATABASE_URL = process.env.DATABASE_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
+const TOTEM_API_KEY = process.env.TOTEM_API_KEY;
 
 if (!DATABASE_URL) {
   throw new Error("Falta configurar DATABASE_URL.");
@@ -49,6 +51,13 @@ const adminLimiter = rateLimit({
   legacyHeaders: false
 });
 
+const totemLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false
+});
+
 const DEFAULT_ROOMS = [
   ["dormitorio_1", "Dormitorio 1"],
   ["dormitorio_2", "Dormitorio 2"],
@@ -69,6 +78,12 @@ function validEmail(email) {
 
 function validDepartment(value) {
   return [1, 2, 3].includes(Number(value));
+}
+
+function validUUID(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || "")
+  );
 }
 
 async function createDefaultRooms(userId, client = pool) {
@@ -193,7 +208,6 @@ function authenticate(req, res, next) {
   }
 }
 
-// Consultar el usuario y su rol actual en la base de datos
 async function loadCurrentUser(req, res, next) {
   try {
     const result = await pool.query(
@@ -225,6 +239,32 @@ function requireAdmin(req, res, next) {
   if (req.currentUser?.role !== "admin") {
     return res.status(403).json({
       error: "Esta cuenta no tiene permisos de administrador."
+    });
+  }
+
+  next();
+}
+
+// ========================================
+// AUTENTICACIÓN DEL TÓTEM
+// ========================================
+
+function authenticateTotem(req, res, next) {
+  const configuredKey = process.env.TOTEM_API_KEY;
+  const receivedKey = req.headers["x-totem-key"];
+
+  if (!configuredKey || configuredKey.length < 32) {
+    return res.status(503).json({
+      error: "El acceso del tótem no está configurado."
+    });
+  }
+
+  if (
+    typeof receivedKey !== "string" ||
+    receivedKey !== configuredKey
+  ) {
+    return res.status(401).json({
+      error: "Tótem no autorizado."
     });
   }
 
@@ -552,6 +592,12 @@ app.post(
     const userId = req.params.id;
     const password = String(req.body.password || "");
 
+    if (!validUUID(userId)) {
+      return res.status(400).json({
+        error: "Identificador de usuario inválido."
+      });
+    }
+
     if (password.length < 8) {
       return res.status(400).json({
         error: "La contraseña debe tener al menos 8 caracteres."
@@ -601,6 +647,12 @@ app.delete(
   requireAdmin,
   adminLimiter,
   async (req, res) => {
+    if (!validUUID(req.params.id)) {
+      return res.status(400).json({
+        error: "Identificador de usuario inválido."
+      });
+    }
+
     try {
       const result = await pool.query(
         `DELETE FROM arguss_users
@@ -807,6 +859,493 @@ app.get(
 );
 
 // ========================================
+// ARGUSS - RECIBIR VISITA DESDE EL TÓTEM
+// ========================================
+
+app.post(
+  "/api/totem/visits",
+  totemLimiter,
+  authenticateTotem,
+  async (req, res) => {
+    const department = Number(req.body.department);
+    const visitorName = String(
+      req.body.visitor_name || ""
+    ).trim();
+
+    const visitorReason = String(
+      req.body.visitor_reason || ""
+    ).trim();
+
+    const photoStorageKey = req.body.photo_storage_key
+      ? String(req.body.photo_storage_key).trim()
+      : null;
+
+    const photoMimeType = req.body.photo_mime_type
+      ? String(req.body.photo_mime_type).trim()
+      : null;
+
+    if (!validDepartment(department)) {
+      return res.status(400).json({
+        error: "Departamento inválido."
+      });
+    }
+
+    if (
+      visitorName.length < 2 ||
+      visitorName.length > 120
+    ) {
+      return res.status(400).json({
+        error: "El nombre debe tener entre 2 y 120 caracteres."
+      });
+    }
+
+    if (visitorReason.length > 500) {
+      return res.status(400).json({
+        error: "El motivo es demasiado largo."
+      });
+    }
+
+    if (
+      photoStorageKey &&
+      photoStorageKey.length > 1000
+    ) {
+      return res.status(400).json({
+        error: "Referencia de fotografía inválida."
+      });
+    }
+
+    if (
+      photoMimeType &&
+      !["image/jpeg", "image/png", "image/webp"].includes(photoMimeType)
+    ) {
+      return res.status(400).json({
+        error: "Formato de fotografía no permitido."
+      });
+    }
+
+    let client;
+
+    try {
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      const visitResult = await client.query(
+        `INSERT INTO arguss_visit_requests (
+          department,
+          visitor_name,
+          visitor_reason,
+          photo_storage_key,
+          photo_mime_type,
+          photo_captured_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5,
+          CASE WHEN $4::text IS NOT NULL THEN NOW()
+          ELSE NULL END
+        )
+        RETURNING
+          id, department, visitor_name,
+          visitor_reason, status, created_at,
+          expires_at`,
+        [
+          department,
+          visitorName,
+          visitorReason || null,
+          photoStorageKey,
+          photoMimeType
+        ]
+      );
+
+      const visit = visitResult.rows[0];
+
+      const usersResult = await client.query(
+        `SELECT id
+         FROM arguss_users
+         WHERE department = $1`,
+        [department]
+      );
+
+      for (const user of usersResult.rows) {
+        await client.query(
+          `INSERT INTO arguss_notifications (
+            user_id,
+            visit_request_id,
+            notification_type,
+            title,
+            message
+          )
+          VALUES ($1, $2, 'visit_request', $3, $4)`,
+          [
+            user.id,
+            visit.id,
+            "Nueva visita",
+            `Hay un visitante esperando en el departamento ${department}.`
+          ]
+        );
+      }
+
+      await client.query(
+        `INSERT INTO arguss_security_events (
+          visit_request_id,
+          event_type,
+          details
+        )
+        VALUES ($1, 'visit_created', $2::jsonb)`,
+        [
+          visit.id,
+          JSON.stringify({
+            department,
+            visitor_name: visitorName
+          })
+        ]
+      );
+
+      await client.query("COMMIT");
+
+      res.status(201).json({
+        ok: true,
+        message: "Solicitud de visita registrada.",
+        visit
+      });
+
+    } catch (error) {
+      if (client) {
+        await client.query("ROLLBACK").catch(() => {});
+      }
+
+      console.error("Error al registrar visita:", error);
+
+      res.status(500).json({
+        error: "No se pudo registrar la visita."
+      });
+
+    } finally {
+      if (client) client.release();
+    }
+  }
+);
+
+// ========================================
+// ARGUSS - CONSULTAR VISITAS
+// ========================================
+
+app.get(
+  "/api/visits",
+  authenticate,
+  loadCurrentUser,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+          id,
+          department,
+          visitor_name,
+          visitor_reason,
+          status,
+          photo_storage_key,
+          photo_mime_type,
+          created_at,
+          expires_at,
+          responded_by,
+          responded_at,
+          response_note
+         FROM arguss_visit_requests
+         WHERE department = $1
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [req.currentUser.department]
+      );
+
+      res.json({
+        visits: result.rows
+      });
+
+    } catch (error) {
+      console.error("Error al consultar visitas:", error);
+
+      res.status(500).json({
+        error: "No se pudieron cargar las visitas."
+      });
+    }
+  }
+);
+
+// ========================================
+// ARGUSS - ACEPTAR O RECHAZAR VISITA
+// ========================================
+
+app.patch(
+  "/api/visits/:id/respond",
+  authenticate,
+  loadCurrentUser,
+  async (req, res) => {
+    const visitId = req.params.id;
+    const decision = String(req.body.decision || "");
+
+    if (!validUUID(visitId)) {
+      return res.status(400).json({
+        error: "Identificador de visita inválido."
+      });
+    }
+
+    if (!["accepted", "rejected"].includes(decision)) {
+      return res.status(400).json({
+        error: "La respuesta debe ser accepted o rejected."
+      });
+    }
+
+    let client;
+
+    try {
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      const visitResult = await client.query(
+        `SELECT *
+         FROM arguss_visit_requests
+         WHERE id = $1
+           AND department = $2
+         FOR UPDATE`,
+        [
+          visitId,
+          req.currentUser.department
+        ]
+      );
+
+      const visit = visitResult.rows[0];
+
+      if (!visit) {
+        await client.query("ROLLBACK");
+
+        return res.status(404).json({
+          error: "Visita no encontrada."
+        });
+      }
+
+      if (visit.status !== "pending") {
+        await client.query("ROLLBACK");
+
+        return res.status(409).json({
+          error: "Esta visita ya fue respondida o no está pendiente.",
+          status: visit.status
+        });
+      }
+
+      if (new Date(visit.expires_at) <= new Date()) {
+        await client.query(
+          `UPDATE arguss_visit_requests
+           SET status = 'expired'
+           WHERE id = $1`,
+          [visitId]
+        );
+
+        await client.query(
+          `INSERT INTO arguss_security_events (
+            visit_request_id,
+            user_id,
+            event_type
+          )
+          VALUES ($1, $2, 'visit_expired')`,
+          [visitId, req.currentUser.id]
+        );
+
+        await client.query("COMMIT");
+
+        return res.status(410).json({
+          error: "La solicitud de visita venció."
+        });
+      }
+
+      await client.query(
+        `UPDATE arguss_visit_requests
+         SET status = $1,
+             responded_by = $2,
+             responded_at = NOW()
+         WHERE id = $3`,
+        [
+          decision,
+          req.currentUser.id,
+          visitId
+        ]
+      );
+
+      await client.query(
+        `INSERT INTO arguss_security_events (
+          visit_request_id,
+          user_id,
+          event_type,
+          details
+        )
+        VALUES ($1, $2, $3, $4::jsonb)`,
+        [
+          visitId,
+          req.currentUser.id,
+          decision === "accepted"
+            ? "visit_accepted"
+            : "visit_rejected",
+          JSON.stringify({
+            department: req.currentUser.department
+          })
+        ]
+      );
+
+      const usersResult = await client.query(
+        `SELECT id
+         FROM arguss_users
+         WHERE department = $1
+           AND id <> $2`,
+        [
+          req.currentUser.department,
+          req.currentUser.id
+        ]
+      );
+
+      const message = decision === "accepted"
+        ? "La visita fue aceptada por un residente."
+        : "La visita fue rechazada por un residente.";
+
+      for (const user of usersResult.rows) {
+        await client.query(
+          `INSERT INTO arguss_notifications (
+            user_id,
+            visit_request_id,
+            notification_type,
+            title,
+            message
+          )
+          VALUES ($1, $2, 'visit_response', $3, $4)`,
+          [
+            user.id,
+            visitId,
+            "Visita respondida",
+            message
+          ]
+        );
+      }
+
+      await client.query("COMMIT");
+
+      res.json({
+        ok: true,
+        message: decision === "accepted"
+          ? "Visita aceptada."
+          : "Visita rechazada.",
+        status: decision
+      });
+
+    } catch (error) {
+      if (client) {
+        await client.query("ROLLBACK").catch(() => {});
+      }
+
+      console.error("Error al responder visita:", error);
+
+      res.status(500).json({
+        error: "No se pudo responder la visita."
+      });
+
+    } finally {
+      if (client) client.release();
+    }
+  }
+);
+
+// ========================================
+// ARGUSS - CONSULTAR NOTIFICACIONES
+// ========================================
+
+app.get(
+  "/api/notifications",
+  authenticate,
+  loadCurrentUser,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+          id,
+          visit_request_id,
+          notification_type,
+          title,
+          message,
+          is_read,
+          created_at
+         FROM arguss_notifications
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [req.currentUser.id]
+      );
+
+      res.json({
+        notifications: result.rows,
+        unread_count: result.rows.filter(
+          notification => !notification.is_read
+        ).length
+      });
+
+    } catch (error) {
+      console.error("Error al cargar notificaciones:", error);
+
+      res.status(500).json({
+        error: "No se pudieron cargar las notificaciones."
+      });
+    }
+  }
+);
+
+// ========================================
+// ARGUSS - MARCAR NOTIFICACIÓN COMO LEÍDA
+// ========================================
+
+app.patch(
+  "/api/notifications/:id/read",
+  authenticate,
+  loadCurrentUser,
+  async (req, res) => {
+    const notificationId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(notificationId) || notificationId < 1) {
+      return res.status(400).json({
+        error: "Identificador de notificación inválido."
+      });
+    }
+
+    try {
+      const result = await pool.query(
+        `UPDATE arguss_notifications
+         SET is_read = TRUE,
+             read_at = NOW()
+         WHERE id = $1
+           AND user_id = $2
+         RETURNING id`,
+        [
+          notificationId,
+          req.currentUser.id
+        ]
+      );
+
+      if (!result.rows[0]) {
+        return res.status(404).json({
+          error: "Notificación no encontrada."
+        });
+      }
+
+      res.json({
+        ok: true,
+        message: "Notificación marcada como leída."
+      });
+
+    } catch (error) {
+      console.error("Error al actualizar notificación:", error);
+
+      res.status(500).json({
+        error: "No se pudo actualizar la notificación."
+      });
+    }
+  }
+);
+
+// ========================================
 // MOSTRAR APLICACIÓN
 // ========================================
 
@@ -834,6 +1373,7 @@ async function startServer() {
   );
 
   await pool.query(schema);
+
   console.log("Base de datos ARGUSS verificada.");
 
   await ensureAdmin();
