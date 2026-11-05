@@ -1025,6 +1025,67 @@ app.post(
   }
 );
 
+
+// ========================================
+// ARGUSS - CONSULTAR ESTADO DE VISITA DESDE UNIGUARD
+// ========================================
+
+app.get(
+  "/api/totem/visits/:id",
+  totemLimiter,
+  authenticateTotem,
+  async (req, res) => {
+    const visitId = req.params.id;
+
+    if (!validUUID(visitId)) {
+      return res.status(400).json({
+        error: "Identificador de visita inválido."
+      });
+    }
+
+    try {
+      const result = await pool.query(
+        `SELECT
+          id,
+          department,
+          CASE
+            WHEN status = 'pending' AND expires_at <= NOW()
+            THEN 'expired'
+            ELSE status
+          END AS status,
+          created_at,
+          expires_at,
+          responded_at
+         FROM arguss_visit_requests
+         WHERE id = $1`,
+        [visitId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          error: "Visita no encontrada."
+        });
+      }
+
+      return res.json({
+        ok: true,
+        visit: result.rows[0]
+      });
+
+    } catch (error) {
+      console.error(
+        "[TOTEM] Error consultando estado de visita:",
+        error
+      );
+
+      return res.status(500).json({
+        error: "No se pudo consultar el estado de la visita."
+      });
+    }
+  }
+);
+
+
 // ========================================
 // ARGUSS - CONSULTAR VISITAS
 // ========================================
