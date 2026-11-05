@@ -51,9 +51,16 @@ const adminLimiter = rateLimit({
   legacyHeaders: false
 });
 
-const totemLimiter = rateLimit({
+authenticateTotem,
   windowMs: 15 * 60 * 1000,
   limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false
+});
+
+const statusLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
   standardHeaders: "draft-7",
   legacyHeaders: false
 });
@@ -1032,7 +1039,7 @@ app.post(
 
 app.get(
   "/api/totem/visits/:id",
-  totemLimiter,
+  statusLimiter,,
   authenticateTotem,
   async (req, res) => {
     const visitId = req.params.id;
