@@ -1,527 +1,762 @@
+
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ARGUSS · Casa inteligente</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARGUSS · Casa inteligente</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
 
-<style>
-:root {
-  color-scheme: dark;
-  --bg:#0b0b0c;
-  --s1:#111112;
-  --s2:#17171a;
-  --bd:#4d4025;
-  --tx:#ece6d8;
-  --mu:#8f887a;
-  --cy:#cfa65e;
-  --gold:#cfa65e;
-  --bl:#b8893a;
-  --bad:#e5766c;
-  --ok:#a9cf92;
-  --wa:#e0b25a;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  color:var(--tx);
-  font:300 15px/1.45 'Montserrat',Arial,sans-serif;
-  min-height:100vh;
-  background:linear-gradient(118deg,#0b0b0c 0 30%,#141415 30% 48%,#0c0c0d 48% 66%,#151516 100%) fixed;
-}
-button,input,select{font:inherit;color:inherit}
-button{cursor:pointer}
-#app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
-nav{
-  position:sticky;
-  top:0;
-  height:100vh;
-  padding:20px 12px;
-  border-right:1px solid var(--bd);
-  background:#0a0a0bd9;
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-.logo{
-  color:var(--gold);
-  font-size:20px;
-  font-weight:300;
-  letter-spacing:0.4em;
-  padding:4px 12px 18px;
-}
-.logo small{
-  display:block;
-  color:var(--mu);
-  font-size:11px;
-  letter-spacing:1px;
-  font-weight:400;
-}
-nav a{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  padding:10px 12px;
-  margin:4px 0;
-  border:1px solid transparent;
-  color:var(--mu);
-  cursor:pointer;
-  border-radius:4px;
-  text-decoration:none;
-}
-nav a:hover,nav a.active,nav a.on{
-  color:var(--gold);
-  border-color:var(--bd);
-  background:transparent;
-}
-main{padding:28px;width:100%;max-width:1200px}
-h1{font-size:22px;font-weight:300;letter-spacing:0.14em;margin:0 0 4px}
-h2{font-size:14px;color:var(--gold);font-weight:400;letter-spacing:0.12em;margin-top:26px}
-.sub,.muted{color:var(--mu);font-size:13px}
-.card{
-  background:#111112d9;
-  border:1px solid var(--bd);
-  border-radius:4px;
-  padding:16px;
-}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:12px;
-}
-.row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:12px 0;
-  border-top:1px solid #4d402555;
-}
-.row:first-of-type{border-top:0}
-.btn{
-  background:transparent;
-  border:1px solid var(--bd);
-  padding:9px 14px;
-  border-radius:4px;
-}
-.btn:hover{border-color:var(--gold)}
-.primary, .btn.p{
-  color:var(--gold);
-  border-color:var(--gold);
-  background:#2b2111;
-}
-.danger, .btn.d{color:var(--bad);border-color:#7a2a35}
-input,select{
-  width:100%;
-  background:#090909;
-  border:1px solid var(--bd);
-  border-radius:4px;
-  padding:11px;
-  margin:5px 0 12px;
-}
-label{display:block;color:var(--mu);font-size:12.5px}
-.login-box{
-  width:100%;
-  max-width:420px;
-  padding:30px;
-  border:1px solid var(--bd);
-  background:#111112d9;
-  border-radius:4px;
-  text-align:center;
-  margin:auto;
-}
-.login-box .logo{margin-bottom:20px}
-#loginScreen{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:30px 20px;
-}
-#adminAccess{
-  position:fixed;
-  top:18px;
-  right:20px;
-  z-index:20;
-}
-#adminPanel{
-  display:none;
-  position:absolute;
-  right:0;
-  top:45px;
-  width:290px;
-  padding:18px;
-  background:#111112;
-  border:1px solid var(--gold);
-}
-#adminPanel.open{display:block}
-#toast{
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  background:#171717;
-  border:1px solid var(--gold);
-  padding:12px 18px;
-  display:none;
-  z-index:30;
-}
-.error, .err{color:var(--bad);font-size:13px;min-height:18px}
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b0c;
+      --s1: #111112;
+      --s2: #17171a;
+      --bd: #4d4025;
+      --tx: #ece6d8;
+      --mu: #8f887a;
+      --cy: #cfa65e;
+      --gold: #cfa65e;
+      --bl: #b8893a;
+      --bad: #e5766c;
+      --ok: #a9cf92;
+      --wa: #e0b25a;
+    }
 
-/* SOLUCIÓN DEFINITIVA DEL BOTÓN INTERRUPTOR (DISEÑO TIPO PASTILLA LIMPIA) */
-.switch {
-  border: 1px solid var(--bd);
-  border-radius: 20px;
-  padding: 8px 18px;
-  background: #090909;
-  color: var(--mu);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.switch.on {
-  background: #392b13;
-  color: var(--gold);
-  border-color: var(--gold);
-}
+    * {
+      box-sizing: border-box
+    }
 
-.hidden{display:none!important}
-body.admin-mode #app{display:block}
-body.admin-mode nav{display:none}
-body.admin-mode main{margin:auto}
+    body {
+      margin: 0;
+      color: var(--tx);
+      font: 300 15px/1.45 'Montserrat', Arial, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(118deg, #0b0b0c 0 30%, #141415 30% 48%, #0c0c0d 48% 66%, #151516 100%) fixed;
+    }
 
-/* ESTILOS DE LA VISTA INICIO */
-.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;margin:10px 0 20px}
-.hl,.hr{text-align:center}
-.clk{font-size:clamp(40px,7vw,64px);font-weight:200;letter-spacing:.14em}
-.mic{position:relative;width:150px;height:150px;margin:15px auto;background:none;border:0;color:var(--gold);cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.mic svg.r{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:var(--gold)}
-.mic:hover{filter:drop-shadow(0 0 8px #cfa65e66)}
-.dt{font-size:32px;font-weight:200;letter-spacing:.1em;margin-top:10px}
-.dt small{display:block;font-size:11px;letter-spacing:.4em;color:var(--gold);margin-top:4px}
-.hex{position:relative;width:min(260px,80%);margin:0 auto}
-.hex svg{width:100%;display:block;fill:none;stroke:var(--gold);stroke-width:2}
-.hex div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}
-.chip{display:inline-flex;gap:7px;align-items:center;padding:5px 11px;border-radius:99px;border:1px solid var(--bd);background:#111112;font-size:12.5px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}
-.ok .dot{background:var(--ok);box-shadow:0 0 8px var(--ok)}
-.bad .dot{background:var(--bad)}
-.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px}
+    button,
+    input,
+    select {
+      font: inherit;
+      color: inherit
+    }
 
-@media(max-width:860px){
-  .hero{grid-template-columns:1fr}
-  #app{display:block}
-  nav{
-    min-height:0;
-    height:auto;
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    z-index:10;
-    display:flex;
-    overflow-x:auto;
-    padding:6px;
-    border-top:1px solid var(--bd);
-    border-right:0;
-    flex-direction:row;
-    justify-content:space-around;
-  }
-  nav .logo{display:none}
-  nav a{font-size:10px;text-align:center;min-width:60px;padding:6px;flex-direction:column;gap:2px}
-  main{padding:18px 14px 100px}
-  body.admin-mode main{padding:25px 14px}
-}
-</style>
+    button {
+      cursor: pointer
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 230px 1fr;
+      min-height: 100vh
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 20px 12px;
+      border-right: 1px solid var(--bd);
+      background: #0a0a0bd9;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .logo {
+      color: var(--gold);
+      font-size: 20px;
+      font-weight: 300;
+      letter-spacing: 0.4em;
+      padding: 4px 12px 18px;
+    }
+
+    .logo small {
+      display: block;
+      color: var(--mu);
+      font-size: 11px;
+      letter-spacing: 1px;
+      font-weight: 400;
+    }
+
+    nav a {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      margin: 4px 0;
+      border: 1px solid transparent;
+      color: var(--mu);
+      cursor: pointer;
+      border-radius: 4px;
+      text-decoration: none;
+    }
+
+    nav a:hover,
+    nav a.active,
+    nav a.on {
+      color: var(--gold);
+      border-color: var(--bd);
+      background: transparent;
+    }
+
+    main {
+      padding: 28px;
+      width: 100%;
+      max-width: 1200px
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: 0.14em;
+      margin: 0 0 4px
+    }
+
+    h2 {
+      font-size: 14px;
+      color: var(--gold);
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      margin-top: 26px
+    }
+
+    .sub,
+    .muted {
+      color: var(--mu);
+      font-size: 13px
+    }
+
+    .card {
+      background: #111112d9;
+      border: 1px solid var(--bd);
+      border-radius: 4px;
+      padding: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid #4d402555;
+    }
+
+    .row:first-of-type {
+      border-top: 0
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--bd);
+      padding: 9px 14px;
+      border-radius: 4px;
+    }
+
+    .btn:hover {
+      border-color: var(--gold)
+    }
+
+    .primary,
+    .btn.p {
+      color: var(--gold);
+      border-color: var(--gold);
+      background: #2b2111;
+    }
+
+    .danger,
+    .btn.d {
+      color: var(--bad);
+      border-color: #7a2a35
+    }
+
+    input,
+    select {
+      width: 100%;
+      background: #090909;
+      border: 1px solid var(--bd);
+      border-radius: 4px;
+      padding: 11px;
+      margin: 5px 0 12px;
+    }
+
+    label {
+      display: block;
+      color: var(--mu);
+      font-size: 12.5px
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+      padding: 30px;
+      border: 1px solid var(--bd);
+      background: #111112d9;
+      border-radius: 4px;
+      text-align: center;
+      margin: auto;
+    }
+
+    .login-box .logo {
+      margin-bottom: 20px
+    }
+
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 20px;
+    }
+
+    #adminAccess {
+      position: fixed;
+      top: 18px;
+      right: 20px;
+      z-index: 20;
+    }
+
+    #adminPanel {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 45px;
+      width: 290px;
+      padding: 18px;
+      background: #111112;
+      border: 1px solid var(--gold);
+    }
+
+    #adminPanel.open {
+      display: block
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #171717;
+      border: 1px solid var(--gold);
+      padding: 12px 18px;
+      display: none;
+      z-index: 30;
+    }
+
+    .error,
+    .err {
+      color: var(--bad);
+      font-size: 13px;
+      min-height: 18px
+    }
+
+    .switch {
+      border: 1px solid var(--bd);
+      border-radius: 20px;
+      padding: 8px 18px;
+      background: #090909;
+      color: var(--mu);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .switch.on {
+      background: #392b13;
+      color: var(--gold);
+      border-color: var(--gold);
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    body.admin-mode #app {
+      display: block
+    }
+
+    body.admin-mode nav {
+      display: none
+    }
+
+    body.admin-mode main {
+      margin: auto
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 20px;
+      align-items: center;
+      margin: 10px 0 20px
+    }
+
+    .hl,
+    .hr {
+      text-align: center
+    }
+
+    .clk {
+      font-size: clamp(40px, 7vw, 64px);
+      font-weight: 200;
+      letter-spacing: .14em
+    }
+
+    .mic {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 15px auto;
+      background: none;
+      border: 0;
+      color: var(--gold);
+      cursor: pointer;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .mic svg.r {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--gold)
+    }
+
+    .mic:hover {
+      filter: drop-shadow(0 0 8px #cfa65e66)
+    }
+
+    .dt {
+      font-size: 32px;
+      font-weight: 200;
+      letter-spacing: .1em;
+      margin-top: 10px
+    }
+
+    .dt small {
+      display: block;
+      font-size: 11px;
+      letter-spacing: .4em;
+      color: var(--gold);
+      margin-top: 4px
+    }
+
+    .hex {
+      position: relative;
+      width: min(260px, 80%);
+      margin: 0 auto
+    }
+
+    .hex svg {
+      width: 100%;
+      display: block;
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 2
+    }
+
+    .hex div {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 4px
+    }
+
+    .chip {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      padding: 5px 11px;
+      border-radius: 99px;
+      border: 1px solid var(--bd);
+      background: #111112;
+      font-size: 12.5px
+    }
+
+    .chip.ok { color: var(--ok); border-color: #526b43; }
+    .chip.bad { color: var(--bad); border-color: #7a2a35; }
+    .chip.wa { color: var(--wa); border-color: #80602a; }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mu)
+    }
+
+    .ok .dot {
+      background: var(--ok);
+      box-shadow: 0 0 8px var(--ok)
+    }
+
+    .bad .dot {
+      background: var(--bad)
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px
+    }
+
+    @media(max-width:860px) {
+      .hero {
+        grid-template-columns: 1fr
+      }
+
+      #app {
+        display: block
+      }
+
+      nav {
+        min-height: 0;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        overflow-x: auto;
+        padding: 6px;
+        border-top: 1px solid var(--bd);
+        border-right: 0;
+        flex-direction: row;
+        justify-content: space-around;
+      }
+
+      nav .logo {
+        display: none
+      }
+
+      nav a {
+        font-size: 10px;
+        text-align: center;
+        min-width: 60px;
+        padding: 6px;
+        flex-direction: column;
+        gap: 2px
+      }
+
+      main {
+        padding: 18px 14px 100px
+      }
+
+      body.admin-mode main {
+        padding: 25px 14px
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="adminAccess">
-  <button class="btn primary" id="adminToggle">ACCESO EXCLUSIVO</button>
-  <div id="adminPanel">
-    <h2>Administración ARGUSS</h2>
-    <label>Correo administrador</label>
-    <input id="adminEmail" type="email" placeholder="Correo administrador">
-    <label>Contraseña</label>
-    <input id="adminPassword" type="password" placeholder="Contraseña">
-    <button class="btn primary" id="adminLogin" style="width:100%">Ingresar</button>
-    <div class="error" id="adminError"></div>
+  <div id="adminAccess">
+    <button class="btn primary" id="adminToggle">ACCESO EXCLUSIVO</button>
+    <div id="adminPanel">
+      <h2>Administración ARGUSS</h2>
+      <label>Correo administrador</label>
+      <input id="adminEmail" type="email" placeholder="Correo administrador">
+      <label>Contraseña</label>
+      <input id="adminPassword" type="password" placeholder="Contraseña">
+      <button class="btn primary" id="adminLogin" style="width:100%">Ingresar</button>
+      <div class="error" id="adminError"></div>
+    </div>
   </div>
-</div>
 
-<div id="loginScreen">
-  <div class="login-box">
-    <div class="logo">ARGUSS<small>CASA INTELIGENTE</small></div>
-    <h1>INICIAR SESIÓN</h1>
-    <p class="sub">Ingresá con tu cuenta autorizada.</p>
-    <label style="text-align:left">Correo electrónico</label>
-    <input id="loginEmail" type="email" placeholder="usuario@correo.com">
-    <label style="text-align:left">Contraseña</label>
-    <input id="loginPassword" type="password" placeholder="Contraseña">
-    <button class="btn primary" id="loginButton" style="width:100%">INGRESAR</button>
-    <div class="error" id="loginError"></div>
+  <div id="loginScreen">
+    <div class="login-box">
+      <div class="logo">ARGUSS<small>CASA INTELIGENTE</small></div>
+      <h1>INICIAR SESIÓN</h1>
+      <p class="sub">Ingresá con tu cuenta autorizada.</p>
+      <label style="text-align:left">Correo electrónico</label>
+      <input id="loginEmail" type="email" placeholder="usuario@correo.com">
+      <label style="text-align:left">Contraseña</label>
+      <input id="loginPassword" type="password" placeholder="Contraseña">
+      <button class="btn primary" id="loginButton" style="width:100%">INGRESAR</button>
+      <div class="error" id="loginError"></div>
+    </div>
   </div>
-</div>
 
-<div id="app" class="hidden">
-  <nav id="nav"></nav>
-  <main id="main"></main>
-</div>
+  <div id="app" class="hidden">
+    <nav id="nav"></nav>
+    <main id="main"></main>
+  </div>
 
-<div id="toast"></div>
+  <div id="toast"></div>
 
-<script>
-"use strict";
+  <script>
+    "use strict";
 
-const API = "https://domotica-nube-1.onrender.com";
-const TOKEN_KEY = "arguss.token";
+    const API = "https://domotica-nube-1.onrender.com";
+    const TOKEN_KEY = "arguss.token";
 
-let currentUser = null;
-let rooms = [];
-let currentView = "inicio";
-let adminUsers = [];
-let historyData = [];
-let climate = {
-  mode:"auto",
-  target:22,
-  low:20,
-  high:25,
-  boiler:false,
-  ac:false
-};
+    let currentUser = null;
+    let rooms = [];
+    let currentView = "inicio";
+    let adminUsers = [];
+    let historyData = [];
 
-const $ = id => document.getElementById(id);
-
-function token(){
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-function saveToken(value){
-  localStorage.setItem(TOKEN_KEY,value);
-}
-
-function clearToken(){
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-function escapeHTML(value){
-  return String(value ?? "").replace(/[&<>"']/g,c=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
-
-function notify(message){
-  $("toast").textContent = message;
-  $("toast").style.display = "block";
-  setTimeout(()=>$("toast").style.display="none",3000);
-}
-
-async function api(method,path,body){
-  const response = await fetch(API+path,{
-    method,
-    headers:{
-      "Content-Type":"application/json",
-      ...(token()?{Authorization:"Bearer "+token()}:{})
-    },
-    body:body ? JSON.stringify(body) : undefined
-  });
-
-  let data={};
-  try{data=await response.json()}catch(e){}
-
-  if(!response.ok){
-    throw new Error(data.error || data.message || "Error "+response.status);
-  }
-
-  return data;
-}
-
-const roomDefinitions = [
-  ["dormitorio-1","Dormitorio 1"],
-  ["dormitorio-2","Dormitorio 2"],
-  ["bano","Baño"],
-  ["antebano","Antebaño"],
-  ["cocina-comedor","Cocina-comedor"],
-  ["sala-de-estar","Sala de estar"],
-  ["balcon","Balcón"]
-];
-
-const lightsDefinitions = [
-  ["luz-dorm1","dormitorio-1","Luz dormitorio 1"],
-  ["luz-velador","dormitorio-1","Velador"],
-  ["luz-dorm2","dormitorio-2","Luz dormitorio 2"],
-  ["luz-bano","bano","Luz baño"],
-  ["luz-antebano","antebano","Luz antebaño"],
-  ["luz-cocina","cocina-comedor","Luz cocina"],
-  ["luz-comedor","cocina-comedor","Luz comedor"],
-  ["luz-estar","sala-de-estar","Luz sala de estar"],
-  ["luz-balcon","balcon","Luz balcón"]
-];
-
-function defaultState(){
-  return {schema:1,desired:{lights:{},climate:{}},reported:{}};
-}
-
-function getRoomState(room){
-  let raw=room.state || {};
-  if(typeof raw==="string"){
-    try{raw=JSON.parse(raw)}catch(e){raw={}}
-  }
-  return raw.state || raw;
-}
-
-function getRoomKey(room){
-  return room.roomKey || room.room_key || room.key || room.slug || room.id;
-}
-
-async function loadRooms(){
-  const data=await api("GET","/api/rooms");
-  const list=Array.isArray(data)?data:(data.rooms||[]);
-
-  rooms=roomDefinitions.map(def=>{
-    const found=list.find(x=>{
-      const key=getRoomKey(x);
-      return String(key)===def[0] ||
-        String(x.name||x.label||"").toLowerCase()===def[1].toLowerCase();
-    });
-
-    const raw=found?getRoomState(found):defaultState();
-
-    return {
-      key:found?getRoomKey(found):def[0],
-      id:def[0],
-      name:def[1],
-      state:raw,
-      lights:lightsDefinitions
-        .filter(l=>l[1]===def[0])
-        .map(l=>({
-          id:l[0],
-          name:l[2],
-          on:!!(raw.desired?.lights?.[l[0]]?.on)
-        }))
+    let climate = {
+      mode: "auto",
+      target: 22,
+      low: 20,
+      high: 25,
+      boiler: false,
+      ac: false
     };
-  });
 
-  const central=rooms.find(r=>r.id==="sala-de-estar");
-  if(central?.state?.desired?.climate){
-    climate={...climate,...central.state.desired.climate};
-  }
-}
+    const $ = id => document.getElementById(id);
 
-function roomPayload(room){
-  const lights={};
-  room.lights.forEach(l=>{
-    lights[l.id]={name:l.name,on:l.on};
-  });
+    function token() {
+      return localStorage.getItem(TOKEN_KEY);
+    }
 
-  return {
-    ...room.state,
-    schema:1,
-    desired:{
-      ...(room.state.desired||{}),
-      lights,
-      ...(room.id==="sala-de-estar"?{climate:{...climate}}:{})
-    },
-    reported:room.state.reported||{}
-  };
-}
+    function saveToken(value) {
+      localStorage.setItem(TOKEN_KEY, value);
+    }
 
-async function saveRoom(room){
-  try{
-    const payload=roomPayload(room);
-    await api("PUT","/api/rooms/"+encodeURIComponent(room.key)+"/state",{
-      state:payload
+    function clearToken() {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    function notify(message) {
+      $("toast").textContent = message;
+      $("toast").style.display = "block";
+      setTimeout(() => $("toast").style.display = "none", 3000);
+    }
+
+    async function api(method, path, body) {
+      const response = await fetch(API + path, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...(token() ? { Authorization: "Bearer " + token() } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      let data = {};
+      try { data = await response.json() } catch (e) { }
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "Error " + response.status);
+      }
+
+      return data;
+    }
+
+    const roomDefinitions = [
+      ["dormitorio-1", "Dormitorio 1"],
+      ["dormitorio-2", "Dormitorio 2"],
+      ["bano", "Baño"],
+      ["antebano", "Antebaño"],
+      ["cocina-comedor", "Cocina-comedor"],
+      ["sala-de-estar", "Sala de estar"],
+      ["balcon", "Balcón"]
+    ];
+
+    const lightsDefinitions = [
+      ["luz-dorm1", "dormitorio-1", "Luz dormitorio 1"],
+      ["luz-velador", "dormitorio-1", "Velador"],
+      ["luz-dorm2", "dormitorio-2", "Luz dormitorio 2"],
+      ["luz-bano", "bano", "Luz baño"],
+      ["luz-antebano", "antebano", "Luz antebaño"],
+      ["luz-cocina", "cocina-comedor", "Luz cocina"],
+      ["luz-comedor", "cocina-comedor", "Luz comedor"],
+      ["luz-estar", "sala-de-estar", "Luz sala de estar"],
+      ["luz-balcon", "balcon", "Luz balcón"]
+    ];
+
+    function defaultState() {
+      return { schema: 1, desired: { lights: {}, climate: {} }, reported: {} };
+    }
+
+    function getRoomState(room) {
+      let raw = room.state || {};
+      if (typeof raw === "string") {
+        try { raw = JSON.parse(raw) } catch (e) { raw = {} }
+      }
+      return raw.state || raw;
+    }
+
+    function getRoomKey(room) {
+      return room.roomKey || room.room_key || room.key || room.slug || room.id;
+    }
+
+    async function loadRooms() {
+      const data = await api("GET", "/api/rooms");
+      const list = Array.isArray(data) ? data : (data.rooms || []);
+
+      rooms = roomDefinitions.map(def => {
+        const found = list.find(x => {
+          const key = getRoomKey(x);
+          return String(key) === def[0] ||
+            String(x.name || x.label || "").toLowerCase() === def[1].toLowerCase();
+        });
+
+        const raw = found ? getRoomState(found) : defaultState();
+
+        return {
+          key: found ? getRoomKey(found) : def[0],
+          id: def[0],
+          name: def[1],
+          state: raw,
+          lights: lightsDefinitions
+            .filter(l => l[1] === def[0])
+            .map(l => ({
+              id: l[0],
+              name: l[2],
+              on: !!(raw.desired?.lights?.[l[0]]?.on)
+            }))
+        };
+      });
+
+      const central = rooms.find(r => r.id === "sala-de-estar");
+      if (central?.state?.desired?.climate) {
+        climate = { ...climate, ...central.state.desired.climate };
+      }
+    }
+
+    function roomPayload(room) {
+      const lights = {};
+      room.lights.forEach(l => {
+        lights[l.id] = { name: l.name, on: l.on };
+      });
+
+      return {
+        ...room.state,
+        schema: 1,
+        desired: {
+          ...(room.state.desired || {}),
+          lights,
+          ...(room.id === "sala-de-estar" ? { climate: { ...climate } } : {})
+        },
+        reported: room.state.reported || {}
+      };
+    }
+
+    async function saveRoom(room) {
+      try {
+        const payload = roomPayload(room);
+        await api("PUT", "/api/rooms/" + encodeURIComponent(room.key) + "/state", {
+          state: payload
+        });
+        room.state = payload;
+        notify("Cambio guardado en la nube.");
+      } catch (error) {
+        notify("No se pudo guardar: " + error.message);
+      }
+    }
+
+    async function login(email, password, target) {
+      const data = await api("POST", "/api/auth/login", { email, password });
+      const tk = data.token || data.accessToken || data.jwt;
+
+      if (!tk) throw new Error("El servidor no devolvió un token.");
+
+      saveToken(tk);
+
+      const me = await api("GET", "/api/me");
+      currentUser = me.user || me;
+
+      const isAdmin = currentUser.role === "admin";
+
+      if (target === "admin" && !isAdmin) {
+        clearToken();
+        currentUser = null;
+        throw new Error("Esta cuenta no tiene permisos de administrador.");
+      }
+
+      if (target === "normal" && isAdmin) {
+        clearToken();
+        currentUser = null;
+        throw new Error("Ingresá desde ACCESO EXCLUSIVO.");
+      }
+
+      if (isAdmin) {
+        document.body.classList.add("admin-mode");
+        $("loginScreen").classList.add("hidden");
+        $("app").classList.remove("hidden");
+        $("adminAccess").classList.add("hidden");
+        await loadAdminUsers();
+        renderAdmin();
+      } else {
+        document.body.classList.remove("admin-mode");
+        $("adminAccess").classList.remove("hidden");
+        $("loginScreen").classList.add("hidden");
+        $("app").classList.remove("hidden");
+        await loadRooms();
+        currentView = "inicio";
+        render();
+      }
+    }
+
+    $("loginButton").addEventListener("click", async () => {
+      $("loginError").textContent = "";
+      try {
+        await login($("loginEmail").value.trim(), $("loginPassword").value, "normal");
+      } catch (e) {
+        $("loginError").textContent = e.message;
+      }
     });
-    room.state=payload;
-    notify("Cambio guardado en la nube.");
-  }catch(error){
-    notify("No se pudo guardar: "+error.message);
-  }
-}
 
-async function login(email,password,target){
-  const data=await api("POST","/api/auth/login",{email,password});
-  const tk=data.token||data.accessToken||data.jwt;
+    $("adminToggle").addEventListener("click", () => {
+      $("adminPanel").classList.toggle("open");
+    });
 
-  if(!tk)throw new Error("El servidor no devolvió un token.");
+    $("adminLogin").addEventListener("click", async () => {
+      $("adminError").textContent = "";
+      try {
+        await login($("adminEmail").value.trim(), $("adminPassword").value, "admin");
+      } catch (e) {
+        $("adminError").textContent = e.message;
+      }
+    });
 
-  saveToken(tk);
+    async function loadAdminUsers() {
+      const data = await api("GET", "/api/admin/users");
+      adminUsers = Array.isArray(data) ? data : (data.users || []);
+    }
 
-  const me=await api("GET","/api/me");
-  currentUser=me.user||me;
+    function renderAdmin() {
+      document.body.classList.add("admin-mode");
+      $("nav").innerHTML = "";
 
-  const isAdmin=currentUser.role==="admin";
-
-  if(target==="admin"&&!isAdmin){
-    clearToken();
-    currentUser=null;
-    throw new Error("Esta cuenta no tiene permisos de administrador.");
-  }
-
-  if(target==="normal"&&isAdmin){
-    clearToken();
-    currentUser=null;
-    throw new Error("Ingresá desde ACCESO EXCLUSIVO.");
-  }
-
-  if(isAdmin){
-    document.body.classList.add("admin-mode");
-    $("loginScreen").classList.add("hidden");
-    $("app").classList.remove("hidden");
-    $("adminAccess").classList.add("hidden");
-    await loadAdminUsers();
-    renderAdmin();
-  }else{
-    document.body.classList.remove("admin-mode");
-    $("adminAccess").classList.remove("hidden");
-    $("loginScreen").classList.add("hidden");
-    $("app").classList.remove("hidden");
-    await loadRooms();
-    currentView="inicio";
-    render();
-  }
-}
-
-$("loginButton").addEventListener("click",async()=>{
-  $("loginError").textContent="";
-  try{
-    await login($("loginEmail").value.trim(),$("loginPassword").value,"normal");
-  }catch(e){
-    $("loginError").textContent=e.message;
-  }
-});
-
-$("adminToggle").addEventListener("click",()=>{
-  $("adminPanel").classList.toggle("open");
-});
-
-$("adminLogin").addEventListener("click",async()=>{
-  $("adminError").textContent="";
-  try{
-    await login($("adminEmail").value.trim(),$("adminPassword").value,"admin");
-  }catch(e){
-    $("adminError").textContent=e.message;
-  }
-});
-
-async function loadAdminUsers(){
-  const data=await api("GET","/api/admin/users");
-  adminUsers=Array.isArray(data)?data:(data.users||[]);
-}
-
-function renderAdmin(){
-  document.body.classList.add("admin-mode");
-  $("nav").innerHTML="";
-
-  $("main").innerHTML=`
+      $("main").innerHTML = `
     <div style="max-width:950px;margin:35px auto">
       <div class="logo">ARGUSS<small>ADMINISTRACIÓN EXCLUSIVA</small></div>
       <h1>Usuarios y contraseñas</h1>
@@ -545,7 +780,7 @@ function renderAdmin(){
 
       <h2>Usuarios registrados</h2>
       <div class="grid">
-        ${adminUsers.map(user=>`
+        ${adminUsers.map(user => `
           <div class="card">
             <b>${escapeHTML(user.email)}</b>
             <p class="muted">Departamento ${escapeHTML(user.department)}</p>
@@ -563,95 +798,96 @@ function renderAdmin(){
       </div>
     </div>
   `;
-}
-
-$("main").addEventListener("click",async event=>{
-  if(currentUser?.role!=="admin")return;
-
-  if(event.target.id==="createUser"){
-    const email=$("newEmail").value.trim();
-    const password=$("newPassword").value;
-    const department=Number($("newDepartment").value);
-
-    if(!email||password.length<8){
-      $("createError").textContent="Completá el correo y una contraseña de al menos 8 caracteres.";
-      return;
     }
 
-    try{
-      await api("POST","/api/admin/users",{email,password,department});
-      await loadAdminUsers();
-      renderAdmin();
-      notify("Usuario creado.");
-    }catch(e){
-      $("createError").textContent=e.message;
-    }
-  }
+    $("main").addEventListener("click", async event => {
+      if (currentUser?.role !== "admin") return;
 
-  if(event.target.id==="reloadUsers"){
-    try{
-      await loadAdminUsers();
-      renderAdmin();
-    }catch(e){notify(e.message)}
-  }
+      if (event.target.id === "createUser") {
+        const email = $("newEmail").value.trim();
+        const password = $("newPassword").value;
+        const department = Number($("newDepartment").value);
 
-  if(event.target.id==="adminLogout")logout();
+        if (!email || password.length < 8) {
+          $("createError").textContent = "Completá el correo y una contraseña de al menos 8 caracteres.";
+          return;
+        }
 
-  const passButton=event.target.closest("[data-password]");
-  if(passButton){
-    const id=passButton.dataset.password;
-    const password=$("pass-"+id).value;
+        try {
+          await api("POST", "/api/admin/users", { email, password, department });
+          await loadAdminUsers();
+          renderAdmin();
+          notify("Usuario creado.");
+        } catch (e) {
+          $("createError").textContent = e.message;
+        }
+      }
 
-    if(password.length<8){
-      notify("La contraseña debe tener al menos 8 caracteres.");
-      return;
-    }
+      if (event.target.id === "reloadUsers") {
+        try {
+          await loadAdminUsers();
+          renderAdmin();
+        } catch (e) { notify(e.message) }
+      }
 
-    try{
-      await api("POST",`/api/admin/users/${encodeURIComponent(id)}/password`,{password});
-      notify("Contraseña actualizada.");
-      await loadAdminUsers();
-      renderAdmin();
-    }catch(e){notify(e.message)}
-  }
+      if (event.target.id === "adminLogout") logout();
 
-  const deleteButton=event.target.closest("[data-delete]");
-  if(deleteButton){
-    if(!confirm("¿Querés eliminar este usuario?"))return;
+      const passButton = event.target.closest("[data-password]");
+      if (passButton) {
+        const id = passButton.dataset.password;
+        const password = $("pass-" + id).value;
 
-    try{
-      await api("DELETE",`/api/admin/users/${encodeURIComponent(deleteButton.dataset.delete)}`);
-      await loadAdminUsers();
-      renderAdmin();
-      notify("Usuario eliminado.");
-    }catch(e){notify(e.message)}
-  }
-});
+        if (password.length < 8) {
+          notify("La contraseña debe tener al menos 8 caracteres.");
+          return;
+        }
 
-const navItems=[
-  ["inicio","Inicio"],
-  ["ambientes","Ambientes"],
-  ["luces","Iluminación"],
-  ["clima","Climatización"],
-  ["sensores","Sensores"],
-  ["seguridad","Seguridad"],
-  ["historial","Historial"],
-  ["ajustes","Ajustes"]
-];
+        try {
+          await api("POST", `/api/admin/users/${encodeURIComponent(id)}/password`, { password });
+          notify("Contraseña actualizada.");
+          await loadAdminUsers();
+          renderAdmin();
+        } catch (e) { notify(e.message) }
+      }
 
-function renderNav(){
-  $("nav").innerHTML=`
-    <div class="logo">ARGUSS<small>${escapeHTML(currentUser?.email||"")}</small></div>
-    ${navItems.map(item=>`
-      <a data-view="${item[0]}" class="${currentView===item[0]?"active":""}">
+      const deleteButton = event.target.closest("[data-delete]");
+      if (deleteButton) {
+        if (!confirm("¿Querés eliminar este usuario?")) return;
+
+        try {
+          await api("DELETE", `/api/admin/users/${encodeURIComponent(deleteButton.dataset.delete)}`);
+          await loadAdminUsers();
+          renderAdmin();
+          notify("Usuario eliminado.");
+        } catch (e) { notify(e.message) }
+      }
+    });
+
+    const navItems = [
+      ["inicio", "Inicio"],
+      ["ambientes", "Ambientes"],
+      ["luces", "Iluminación"],
+      ["clima", "Climatización"],
+      ["sensores", "Sensores"],
+      ["seguridad", "Seguridad"],
+      ["ingreso", "Ingreso"],
+      ["historial", "Historial"],
+      ["ajustes", "Ajustes"]
+    ];
+
+    function renderNav() {
+      $("nav").innerHTML = `
+    <div class="logo">ARGUSS<small>${escapeHTML(currentUser?.email || "")}</small></div>
+    ${navItems.map(item => `
+      <a data-view="${item[0]}" class="${currentView === item[0] ? "active" : ""}">
         ${item[1]}
       </a>
     `).join("")}
   `;
-}
+    }
 
-function header(title,description){
-  return `
+    function header(title, description) {
+      return `
     <div class="top-bar">
       <div>
         <h1>${title}</h1>
@@ -659,70 +895,77 @@ function header(title,description){
       </div>
       <span class="chip bad"><i class="dot"></i>Sin respuesta del ESP32</span>
     </div>`;
-}
+    }
 
-function roomCard(room){
-  return `
+    function roomCard(room) {
+      return `
     <div class="card">
       <h2>${room.name}</h2>
-      <p class="muted">${room.lights.filter(l=>l.on).length} luces encendidas por orden</p>
+      <p class="muted">${room.lights.filter(l => l.on).length} luces encendidas por orden</p>
       <button class="btn" data-room="${room.id}" style="margin-top:10px">VER AMBIENTE</button>
     </div>
   `;
-}
+    }
 
-function lightControl(room,light){
-  return `
+    function lightControl(room, light) {
+      return `
     <div class="row">
       <span>${escapeHTML(light.name)}</span>
-      <button class="switch ${light.on?"on":""}" data-light="${escapeHTML(light.id)}">
-        ${light.on?"ENCENDIDA":"APAGADA"}
+      <button class="switch ${light.on ? "on" : ""}" data-light="${escapeHTML(light.id)}">
+        ${light.on ? "ENCENDIDA" : "APAGADA"}
       </button>
     </div>
   `;
-}
+    }
 
-function updateClock(){
-  const clk = $("clk");
-  const dd = $("dd");
-  const dw = $("dw");
-  if(!clk) return;
-  const now = new Date();
-  clk.textContent = now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false});
-  if(dd) dd.textContent = now.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}).replace('.','').toUpperCase();
-  if(dw) dw.textContent = now.toLocaleDateString('es-AR',{weekday:'long'}).toUpperCase();
-}
-setInterval(updateClock, 1000);
+    function updateClock() {
+      const clk = $("clk");
+      const dd = $("dd");
+      const dw = $("dw");
+      if (!clk) return;
+      const now = new Date();
+      clk.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (dd) dd.textContent = now.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase();
+      if (dw) dw.textContent = now.toLocaleDateString('es-AR', { weekday: 'long' }).toUpperCase();
+    }
+    setInterval(updateClock, 1000);
 
-function render(){
-  if(currentUser?.role==="admin"){
-    renderAdmin();
-    return;
-  }
+    // Actualiza las solicitudes del tótem mientras el residente está en Ingreso.
+    setInterval(() => {
+      if (currentView === "ingreso" && currentUser?.role !== "admin") {
+        loadVisits();
+      }
+    }, 15000);
 
-  renderNav();
-  const main=$("main");
+    function render() {
+      if (currentUser?.role === "admin") {
+        renderAdmin();
+        return;
+      }
 
-  if(currentView==="inicio"){
-    const totalLights = rooms.reduce((acc, r) => acc + r.lights.length, 0);
-    const activeLights = rooms.reduce((acc, r) => acc + r.lights.filter(l => l.on).length, 0);
-    const deptName = currentUser?.department ? `Departamento ${currentUser.department}` : (currentUser?.email || "Departamento 1");
-    
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const timeStr = `${hours}:${minutes}`;
+      renderNav();
+      const main = $("main");
 
-    const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
-    const days = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
-    const dayNum = String(now.getDate()).padStart(2, '0');
-    const monthStr = months[now.getMonth()];
-    const dayName = days[now.getDay()];
-    const dateStr = `${dayNum}-${monthStr}`;
+      if (currentView === "inicio") {
+        const totalLights = rooms.reduce((acc, r) => acc + r.lights.length, 0);
+        const activeLights = rooms.reduce((acc, r) => acc + r.lights.filter(l => l.on).length, 0);
+        const deptName = currentUser?.department ? `Departamento ${currentUser.department}` : (currentUser?.email || "Departamento 1");
 
-    const activeClimateText = climate.boiler ? "Caldera" : (climate.ac ? "Aire Acondicionado" : "En reposo");
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
 
-    main.innerHTML = `
+        const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+        const days = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+        const dayNum = String(now.getDate()).padStart(2, '0');
+        const monthStr = months[now.getMonth()];
+        const dayName = days[now.getDay()];
+        const dateStr = `${dayNum}-${monthStr}`;
+
+        const activeClimateText = climate.boiler ? "Caldera" : (climate.ac ? "Aire Acondicionado" : "En reposo");
+
+        main.innerHTML = `
       <div class="top-bar">
         <div>
           <h1>ARGUSS · ${escapeHTML(deptName)}</h1>
@@ -787,34 +1030,34 @@ function render(){
         </div>
       </div>
     `;
-  }
+      }
 
-  if(currentView==="ambientes"){
-    main.innerHTML=header("Ambientes","Tus siete ambientes.")+
-      `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
-  }
+      if (currentView === "ambientes") {
+        main.innerHTML = header("Ambientes", "Tus siete ambientes.") +
+          `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
+      }
 
-  if(currentView==="luces"){
-    main.innerHTML=header("Iluminación","Control de luces por ambiente.")+
-      rooms.map(room=>`
+      if (currentView === "luces") {
+        main.innerHTML = header("Iluminación", "Control de luces por ambiente.") +
+          rooms.map(room => `
         <h2>${room.name}</h2>
         <div class="card" style="margin-top:8px">
-          ${room.lights.map(light=>lightControl(room,light)).join("")}
+          ${room.lights.map(light => lightControl(room, light)).join("")}
         </div>
       `).join("");
-  }
+      }
 
-  if(currentView.startsWith("room:")){
-    const room=rooms.find(r=>r.id===currentView.split(":")[1]);
-    if(!room){currentView="ambientes";render();return;}
+      if (currentView.startsWith("room:")) {
+        const room = rooms.find(r => r.id === currentView.split(":")[1]);
+        if (!room) { currentView = "ambientes"; render(); return; }
 
-    main.innerHTML=header(room.name,"Control del ambiente.")+
-      `<div class="card">${room.lights.map(light=>lightControl(room,light)).join("")}</div>`;
-  }
+        main.innerHTML = header(room.name, "Control del ambiente.") +
+          `<div class="card">${room.lights.map(light => lightControl(room, light)).join("")}</div>`;
+      }
 
-  if(currentView==="clima"){
-    main.innerHTML=header("Climatización","Configuración de calderas y aires acondicionados.")+
-      `<div class="grid" style="margin-top:15px">
+      if (currentView === "clima") {
+        main.innerHTML = header("Climatización", "Configuración de calderas y aires acondicionados.") +
+          `<div class="grid" style="margin-top:15px">
         <div class="card">
           <h2>Temperatura objetivo</h2>
           <div class="row" style="border:0">
@@ -826,23 +1069,23 @@ function render(){
 
         <div class="card">
           <h2>Calderas</h2>
-          <button class="switch ${climate.boiler?"on":""}" data-climate="boiler" style="margin-top:10px">
-            ${climate.boiler?"ENCENDIDA":"APAGADA"}
+          <button class="switch ${climate.boiler ? "on" : ""}" data-climate="boiler" style="margin-top:10px">
+            ${climate.boiler ? "ENCENDIDA" : "APAGADA"}
           </button>
         </div>
 
         <div class="card">
           <h2>Aires acondicionados</h2>
-          <button class="switch ${climate.ac?"on":""}" data-climate="ac" style="margin-top:10px">
-            ${climate.ac?"ENCENDIDO":"APAGADO"}
+          <button class="switch ${climate.ac ? "on" : ""}" data-climate="ac" style="margin-top:10px">
+            ${climate.ac ? "ENCENDIDO" : "APAGADO"}
           </button>
         </div>
 
         <div class="card">
           <h2>Modo de control</h2>
           <select id="climateMode">
-            <option value="auto" ${climate.mode==="auto"?"selected":""}>Automático</option>
-            <option value="manual" ${climate.mode==="manual"?"selected":""}>Manual</option>
+            <option value="auto" ${climate.mode === "auto" ? "selected" : ""}>Automático</option>
+            <option value="manual" ${climate.mode === "manual" ? "selected" : ""}>Manual</option>
           </select>
           <label>Umbral caldera</label>
           <input id="lowTemp" type="number" value="${climate.low}">
@@ -852,22 +1095,22 @@ function render(){
         </div>
       </div>
       <p class="muted" style="margin-top:15px">Las órdenes se guardan en la nube. Requieren la conexión y configuración del hardware para controlar equipos físicos.</p>`;
-  }
+      }
 
-  if(currentView==="sensores"){
-    main.innerHTML=header("Sensores","Lecturas reportadas por los equipos.")+
-      `<div class="card" style="margin-top:15px">
+      if (currentView === "sensores") {
+        main.innerHTML = header("Sensores", "Lecturas reportadas por los equipos.") +
+          `<div class="card" style="margin-top:15px">
         <p class="muted">Todavía no hay lecturas físicas confirmadas. La ESP32 debe enviar los datos a la nube.</p>
         <div class="row"><span>Temperatura</span><b>—</b></div>
         <div class="row"><span>Humedad</span><b>—</b></div>
         <div class="row"><span>Oxígeno</span><b>—</b></div>
         <div class="row"><span>Luminosidad</span><b>—</b></div>
       </div>`;
-  }
+      }
 
-  if(currentView==="seguridad"){
-    main.innerHTML=header("Seguridad","Monitoreo de aberturas y detección de humo.")+
-      `<div class="grid" style="margin-top:15px">
+      if (currentView === "seguridad") {
+        main.innerHTML = header("Seguridad", "Monitoreo de aberturas y detección de humo.") +
+          `<div class="grid" style="margin-top:15px">
         <div class="card">
           <h2>Detector de Humo / Gas</h2>
           <div class="row" style="margin-top:10px">
@@ -886,10 +1129,10 @@ function render(){
           <p class="muted" style="margin-top:8px">No se detectaron aberturas activas en los ambientes.</p>
         </div>
       </div>
-      
+
       <h2 style="margin-top:25px">Estado por ambiente</h2>
       <div class="grid">
-        ${rooms.map(r=>`
+        ${rooms.map(r => `
           <div class="card">
             <b>${r.name}</b>
             <div class="row" style="margin-top:8px">
@@ -899,17 +1142,34 @@ function render(){
           </div>
         `).join("")}
       </div>`;
-  }
+      }
 
-  if(currentView==="historial"){
-    main.innerHTML=header("Historial","Cambios registrados en la nube.")+
-      `<div class="card" style="margin-top:15px" id="historyContent">Cargando historial...</div>`;
-    loadHistory();
-  }
+      /* INGRESO: SOLICITUDES DEL TOTEM, DESDE ARGUSS / NEON */
 
-  if(currentView==="ajustes"){
-    main.innerHTML=header("Ajustes","Tu cuenta y seguridad.")+
-      `<div class="card" style="margin-top:15px">
+      if (currentView === "ingreso") {
+        main.innerHTML = header("Ingreso", "Solicitudes de visita recibidas desde UniGuard.") +
+          `<div class="row" style="margin-top:15px;justify-content:space-between;align-items:center">
+            <div>
+              <h2 style="margin:0">Solicitudes del tótem</h2>
+              <p class="muted" style="margin:5px 0 0">Se muestran únicamente las visitas del departamento de tu cuenta.</p>
+            </div>
+            <button class="btn" id="reloadVisits">ACTUALIZAR</button>
+          </div>
+          <div id="visitsContent" style="margin-top:15px">
+            <div class="card muted">Cargando solicitudes...</div>
+          </div>`;
+        loadVisits();
+      }
+
+      if (currentView === "historial") {
+        main.innerHTML = header("Historial", "Cambios registrados en la nube.") +
+          `<div class="card" style="margin-top:15px" id="historyContent">Cargando historial...</div>`;
+        loadHistory();
+      }
+
+      if (currentView === "ajustes") {
+        main.innerHTML = header("Ajustes", "Tu cuenta y seguridad.") +
+          `<div class="card" style="margin-top:15px">
         <div class="row"><span>Usuario</span><b>${escapeHTML(currentUser?.email)}</b></div>
         <div class="row"><span>Departamento</span><b>${escapeHTML(currentUser?.department || "1")}</b></div>
         <div class="row"><span>Servidor</span><span class="muted">ARGUSS Cloud</span></div>
@@ -917,139 +1177,255 @@ function render(){
           <button class="btn danger" id="logoutButton" style="width:100%">Cerrar sesión</button>
         </div>
       </div>`;
-  }
-}
-
-async function persistClimate(){
-  const room=rooms.find(r=>r.id==="sala-de-estar");
-  if(!room)return;
-  await saveRoom(room);
-}
-
-async function loadHistory(){
-  try{
-    const data=await api("GET","/api/history");
-    historyData=Array.isArray(data)?data:(data.history||data.items||[]);
-    const el=$("historyContent");
-    if(el){
-      el.innerHTML=historyData.length
-        ?historyData.map(h=>`<div class="row">${escapeHTML(h.message||h.action||"Cambio registrado")}<span class="muted">${escapeHTML(h.created_at||"")}</span></div>`).join("")
-        :"Todavía no hay cambios registrados.";
+      }
     }
-  }catch(e){
-    const el=$("historyContent");
-    if(el)el.textContent=e.message;
-  }
-}
 
-$("nav").addEventListener("click",event=>{
-  const link=event.target.closest("[data-view]");
-  if(link){
-    currentView=link.dataset.view;
-    render();
-  }
-});
-
-$("main").addEventListener("click",async event=>{
-  if(currentUser?.role==="admin")return;
-
-  const roomButton=event.target.closest("[data-room]");
-  if(roomButton){
-    currentView="room:"+roomButton.dataset.room;
-    render();
-    return;
-  }
-
-  const lightButton=event.target.closest("[data-light]");
-  if(lightButton){
-    const room=rooms.find(r=>r.lights.some(l=>l.id===lightButton.dataset.light));
-    const light=room?.lights.find(l=>l.id===lightButton.dataset.light);
-    if(light&&room){
-      light.on=!light.on;
-      render();
+    async function persistClimate() {
+      const room = rooms.find(r => r.id === "sala-de-estar");
+      if (!room) return;
       await saveRoom(room);
     }
-    return;
-  }
 
-  const climateButton=event.target.closest("[data-climate]");
-  if(climateButton){
-    const key=climateButton.dataset.climate;
-    climate[key]=!climate[key];
-    if(key==="boiler"&&climate.boiler)climate.ac=false;
-    if(key==="ac"&&climate.ac)climate.boiler=false;
-    render();
-    await persistClimate();
-    return;
-  }
-
-  const targetButton=event.target.closest("[data-target]");
-  if(targetButton){
-    climate.target=Math.max(16,Math.min(30,climate.target+Number(targetButton.dataset.target)));
-    render();
-    await persistClimate();
-    return;
-  }
-
-  if(event.target.id==="saveClimate"){
-    const low=Number($("lowTemp").value);
-    const high=Number($("highTemp").value);
-
-    if(low>=high){notify("El umbral de caldera debe ser menor que el del aire.");return;}
-
-    climate.low=low;
-    climate.high=high;
-    climate.mode=$("climateMode").value;
-    await persistClimate();
-    render();
-  }
-
-  if(event.target.id==="logoutButton")logout();
-});
-
-function logout(){
-  clearToken();
-  currentUser=null;
-  rooms=[];
-  adminUsers=[];
-  document.body.classList.remove("admin-mode");
-  $("adminAccess").classList.remove("hidden");
-  $("adminPanel").classList.remove("open");
-  $("app").classList.add("hidden");
-  $("loginScreen").classList.remove("hidden");
-  $("loginEmail").value="";
-  $("loginPassword").value="";
-  $("adminEmail").value="";
-  $("adminPassword").value="";
-}
-
-async function boot(){
-  if(!token())return;
-
-  try{
-    const me=await api("GET","/api/me");
-    currentUser=me.user||me;
-
-    if(currentUser.role==="admin"){
-      $("loginScreen").classList.add("hidden");
-      $("app").classList.remove("hidden");
-      $("adminAccess").classList.add("hidden");
-      document.body.classList.add("admin-mode");
-      await loadAdminUsers();
-      renderAdmin();
-    }else{
-      $("loginScreen").classList.add("hidden");
-      $("app").classList.remove("hidden");
-      await loadRooms();
-      render();
+    function visitStatus(visit) {
+      if (visit.status === "pending" && visit.expires_at &&
+          new Date(visit.expires_at).getTime() <= Date.now()) {
+        return "expired";
+      }
+      return visit.status || "pending";
     }
-  }catch(e){
-    clearToken();
-    currentUser=null;
-  }
-}
 
-boot();
-</script>
+    function visitStatusLabel(status) {
+      return ({
+        pending: "Pendiente",
+        accepted: "Aceptada",
+        rejected: "Rechazada",
+        expired: "Vencida"
+      })[status] || status;
+    }
+
+    function formatVisitDate(value) {
+      if (!value) return "Fecha no disponible";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Fecha no disponible";
+      return date.toLocaleString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    async function loadVisits() {
+      const container = $("visitsContent");
+      if (!container) return;
+
+      container.innerHTML = `<div class="card muted">Cargando solicitudes...</div>`;
+
+      try {
+        const data = await api("GET", "/api/visits");
+        const visits = Array.isArray(data)
+          ? data
+          : (data.visits || data.items || []);
+
+        if (!visits.length) {
+          container.innerHTML = `
+            <div class="card">
+              <h2>No hay solicitudes</h2>
+              <p class="muted">Cuando alguien solicite ingresar desde el tótem, la visita aparecerá acá.</p>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = visits.map(visit => {
+          const status = visitStatus(visit);
+          const pending = status === "pending";
+          return `
+            <div class="card" style="margin-bottom:12px">
+              <div class="row" style="justify-content:space-between;align-items:center;gap:10px">
+                <h2 style="margin:0">${escapeHTML(visit.visitor_name || "Visitante sin nombre")}</h2>
+                <span class="chip ${pending ? "wa" : (status === "accepted" ? "ok" : "bad")}">
+                  ${escapeHTML(visitStatusLabel(status))}
+                </span>
+              </div>
+              <div class="row"><span class="muted">Departamento</span><b>${escapeHTML(visit.department ?? currentUser?.department ?? "—")}</b></div>
+              <div class="row"><span class="muted">Motivo</span><span>${escapeHTML(visit.visitor_reason || "No especificado")}</span></div>
+              <div class="row"><span class="muted">Recibida</span><span>${escapeHTML(formatVisitDate(visit.created_at))}</span></div>
+              <div class="row"><span class="muted">Vence</span><span>${escapeHTML(formatVisitDate(visit.expires_at))}</span></div>
+              ${visit.responded_at ? `<div class="row"><span class="muted">Respondida</span><span>${escapeHTML(formatVisitDate(visit.responded_at))}</span></div>` : ""}
+              ${pending ? `
+                <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
+                  <button class="btn primary" data-visit-decision="accepted" data-visit-id="${escapeHTML(visit.id)}">ACEPTAR</button>
+                  <button class="btn danger" data-visit-decision="rejected" data-visit-id="${escapeHTML(visit.id)}">RECHAZAR</button>
+                </div>
+              ` : ""}
+            </div>`;
+        }).join("");
+      } catch (error) {
+        container.innerHTML = `
+          <div class="card">
+            <h2>No se pudieron cargar las solicitudes</h2>
+            <p class="error">${escapeHTML(error.message)}</p>
+            <p class="muted">Verificá que hayas iniciado sesión con tu cuenta de residente y que el servidor ARGUSS esté disponible.</p>
+            <button class="btn" id="reloadVisits">REINTENTAR</button>
+          </div>`;
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const data = await api("GET", "/api/history");
+        historyData = Array.isArray(data) ? data : (data.history || data.items || []);
+        const el = $("historyContent");
+        if (el) {
+          el.innerHTML = historyData.length
+            ? historyData.map(h => `<div class="row">${escapeHTML(h.message || h.action || "Cambio registrado")}<span class="muted">${escapeHTML(h.created_at || "")}</span></div>`).join("")
+            : "Todavía no hay cambios registrados.";
+        }
+      } catch (e) {
+        const el = $("historyContent");
+        if (el) el.textContent = e.message;
+      }
+    }
+
+    $("nav").addEventListener("click", event => {
+      const link = event.target.closest("[data-view]");
+      if (link) {
+        currentView = link.dataset.view;
+        render();
+      }
+    });
+
+    $("main").addEventListener("click", async event => {
+      if (currentUser?.role === "admin") return;
+
+      if (event.target.id === "reloadVisits") {
+        await loadVisits();
+        return;
+      }
+
+      const visitDecisionButton = event.target.closest("[data-visit-decision]");
+      if (visitDecisionButton) {
+        const visitId = visitDecisionButton.dataset.visitId;
+        const decision = visitDecisionButton.dataset.visitDecision;
+        const actionLabel = decision === "accepted" ? "aceptar" : "rechazar";
+
+        if (!visitId || !["accepted", "rejected"].includes(decision)) return;
+        if (!confirm(`¿Confirmás ${actionLabel} esta solicitud de visita?`)) return;
+
+        visitDecisionButton.disabled = true;
+        try {
+          await api("PATCH", `/api/visits/${encodeURIComponent(visitId)}/respond`, {
+            decision
+          });
+          notify(decision === "accepted" ? "Visita aceptada." : "Visita rechazada.");
+          await loadVisits();
+        } catch (error) {
+          notify("No se pudo responder: " + error.message);
+          await loadVisits();
+        }
+        return;
+      }
+
+      const roomButton = event.target.closest("[data-room]");
+      if (roomButton) {
+        currentView = "room:" + roomButton.dataset.room;
+        render();
+        return;
+      }
+
+      const lightButton = event.target.closest("[data-light]");
+      if (lightButton) {
+        const room = rooms.find(r => r.lights.some(l => l.id === lightButton.dataset.light));
+        const light = room?.lights.find(l => l.id === lightButton.dataset.light);
+        if (light && room) {
+          light.on = !light.on;
+          render();
+          await saveRoom(room);
+        }
+        return;
+      }
+
+      const climateButton = event.target.closest("[data-climate]");
+      if (climateButton) {
+        const key = climateButton.dataset.climate;
+        climate[key] = !climate[key];
+        if (key === "boiler" && climate.boiler) climate.ac = false;
+        if (key === "ac" && climate.ac) climate.boiler = false;
+        render();
+        await persistClimate();
+        return;
+      }
+
+      const targetButton = event.target.closest("[data-target]");
+      if (targetButton) {
+        climate.target = Math.max(16, Math.min(30, climate.target + Number(targetButton.dataset.target)));
+        render();
+        await persistClimate();
+        return;
+      }
+
+      if (event.target.id === "saveClimate") {
+        const low = Number($("lowTemp").value);
+        const high = Number($("highTemp").value);
+
+        if (low >= high) { notify("El umbral de caldera debe ser menor que el del aire."); return; }
+
+        climate.low = low;
+        climate.high = high;
+        climate.mode = $("climateMode").value;
+        await persistClimate();
+        render();
+        return;
+      }
+
+      if (event.target.id === "logoutButton") logout();
+    });
+
+    function logout() {
+      clearToken();
+      currentUser = null;
+      rooms = [];
+      adminUsers = [];
+      document.body.classList.remove("admin-mode");
+      $("adminAccess").classList.remove("hidden");
+      $("adminPanel").classList.remove("open");
+      $("app").classList.add("hidden");
+      $("loginScreen").classList.remove("hidden");
+      $("loginEmail").value = "";
+      $("loginPassword").value = "";
+      $("adminEmail").value = "";
+      $("adminPassword").value = "";
+    }
+
+    async function boot() {
+      if (!token()) return;
+
+      try {
+        const me = await api("GET", "/api/me");
+        currentUser = me.user || me;
+
+        if (currentUser.role === "admin") {
+          $("loginScreen").classList.add("hidden");
+          $("app").classList.remove("hidden");
+          $("adminAccess").classList.add("hidden");
+          document.body.classList.add("admin-mode");
+          await loadAdminUsers();
+          renderAdmin();
+        } else {
+          $("loginScreen").classList.add("hidden");
+          $("app").classList.remove("hidden");
+          await loadRooms();
+          render();
+        }
+      } catch (e) {
+        clearToken();
+        currentUser = null;
+      }
+    }
+
+    boot();
+  </script>
 </body>
+
 </html>
