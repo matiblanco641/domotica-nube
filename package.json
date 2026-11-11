@@ -3,10 +3,10 @@
   "name": "arguss-domotica",
   "version": "1.0.0",
   "description": "Sistema de domotica ARGUSS",
-  "main": "server.js",
+  "main": "servidor.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node servidor.js",
+    "dev": "node servidor.js"
   },
   "engines": {
     "node": ">=20"
