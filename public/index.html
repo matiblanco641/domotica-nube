@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -396,6 +395,10 @@
       font-size: 12.5px
     }
 
+    .chip.ok { color: var(--ok); border-color: #526b43; }
+    .chip.bad { color: var(--bad); border-color: #7a2a35; }
+    .chip.wa { color: var(--wa); border-color: #80602a; }
+
     .dot {
       width: 8px;
       height: 8px;
@@ -419,35 +422,6 @@
       margin-bottom: 15px;
       flex-wrap: wrap;
       gap: 10px
-    }
-
-    .photo-preview {
-      width: 112px;
-      height: 112px;
-      border: 1px dashed var(--bd);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      color: var(--mu);
-      background: #090909;
-      margin: 8px 0 12px;
-    }
-
-    .photo-preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .admin-demo-note {
-      margin-top: 14px;
-      padding: 12px;
-      border: 1px dashed var(--bd);
-      color: var(--mu);
-      font-size: 12px;
-      line-height: 1.6;
     }
 
     @media(max-width:860px) {
@@ -499,10 +473,8 @@
     }
   </style>
 </head>
-
 <body>
-
-  <div id="adminAccess">
+<div id="adminAccess">
     <button class="btn primary" id="adminToggle">ACCESO EXCLUSIVO</button>
     <div id="adminPanel">
       <h2>Administración ARGUSS</h2>
@@ -607,24 +579,24 @@
     }
 
     const roomDefinitions = [
-      ["dormitorio-1", "Dormitorio 1"],
-      ["dormitorio-2", "Dormitorio 2"],
+      ["dormitorio_1", "Dormitorio 1"],
+      ["dormitorio_2", "Dormitorio 2"],
       ["bano", "Baño"],
       ["antebano", "Antebaño"],
-      ["cocina-comedor", "Cocina-comedor"],
-      ["sala-de-estar", "Sala de estar"],
+      ["cocina_comedor", "Cocina-comedor"],
+      ["sala_estar", "Sala de estar"],
       ["balcon", "Balcón"]
     ];
 
     const lightsDefinitions = [
-      ["luz-dorm1", "dormitorio-1", "Luz dormitorio 1"],
-      ["luz-velador", "dormitorio-1", "Velador"],
-      ["luz-dorm2", "dormitorio-2", "Luz dormitorio 2"],
+      ["luz-dorm1", "dormitorio_1", "Luz dormitorio 1"],
+      ["luz-velador", "dormitorio_1", "Velador"],
+      ["luz-dorm2", "dormitorio_2", "Luz dormitorio 2"],
       ["luz-bano", "bano", "Luz baño"],
       ["luz-antebano", "antebano", "Luz antebaño"],
-      ["luz-cocina", "cocina-comedor", "Luz cocina"],
-      ["luz-comedor", "cocina-comedor", "Luz comedor"],
-      ["luz-estar", "sala-de-estar", "Luz sala de estar"],
+      ["luz-cocina", "cocina_comedor", "Luz cocina"],
+      ["luz-comedor", "cocina_comedor", "Luz comedor"],
+      ["luz-estar", "sala_estar", "Luz sala de estar"],
       ["luz-balcon", "balcon", "Luz balcón"]
     ];
 
@@ -672,7 +644,7 @@
         };
       });
 
-      const central = rooms.find(r => r.id === "sala-de-estar");
+      const central = rooms.find(r => r.id === "sala_estar");
       if (central?.state?.desired?.climate) {
         climate = { ...climate, ...central.state.desired.climate };
       }
@@ -690,7 +662,7 @@
         desired: {
           ...(room.state.desired || {}),
           lights,
-          ...(room.id === "sala-de-estar" ? { climate: { ...climate } } : {})
+          ...(room.id === "sala_estar" ? { climate: { ...climate } } : {})
         },
         reported: room.state.reported || {}
       };
@@ -1424,7 +1396,7 @@
             }
           }
               async function persistClimate() {
-                  const room = rooms.find(r => r.id === "sala-de-estar");
+                  const room = rooms.find(r => r.id === "sala_estar");
                   if (!room) return;
                   await saveRoom(room);
                 }
@@ -1613,3 +1585,4 @@
   </body>
   
   </html>
+
