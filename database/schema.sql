@@ -19,6 +19,17 @@ ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
 ALTER TABLE arguss_users
 ADD COLUMN IF NOT EXISTS department INTEGER NOT NULL DEFAULT 1;
 
+-- Fotografía del residente
+ALTER TABLE arguss_users
+ADD COLUMN IF NOT EXISTS photo_data BYTEA;
+
+ALTER TABLE arguss_users
+ADD COLUMN IF NOT EXISTS photo_mime_type VARCHAR(50);
+
+-- PIN de seis dígitos almacenado como hash bcrypt
+ALTER TABLE arguss_users
+ADD COLUMN IF NOT EXISTS pin_hash TEXT;
+
 UPDATE arguss_users
 SET role = 'user'
 WHERE role IS NULL OR role NOT IN ('admin', 'user');
