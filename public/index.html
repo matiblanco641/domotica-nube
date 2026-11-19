@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -395,10 +396,6 @@
       font-size: 12.5px
     }
 
-    .chip.ok { color: var(--ok); border-color: #526b43; }
-    .chip.bad { color: var(--bad); border-color: #7a2a35; }
-    .chip.wa { color: var(--wa); border-color: #80602a; }
-
     .dot {
       width: 8px;
       height: 8px;
@@ -422,6 +419,36 @@
       margin-bottom: 15px;
       flex-wrap: wrap;
       gap: 10px
+    }
+
+
+    .photo-preview {
+      width: 112px;
+      height: 112px;
+      border: 1px dashed var(--bd);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: var(--mu);
+      background: #090909;
+      margin: 8px 0 12px;
+    }
+
+    .photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .admin-demo-note {
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px dashed var(--bd);
+      color: var(--mu);
+      font-size: 12px;
+      line-height: 1.6;
     }
 
     @media(max-width:860px) {
@@ -473,8 +500,10 @@
     }
   </style>
 </head>
+
 <body>
-<div id="adminAccess">
+
+  <div id="adminAccess">
     <button class="btn primary" id="adminToggle">ACCESO EXCLUSIVO</button>
     <div id="adminPanel">
       <h2>Administración ARGUSS</h2>
@@ -521,6 +550,8 @@
     let currentView = "inicio";
     let adminUsers = [];
     let historyData = [];
+    let visitsData = [];
+    let visitsLoading = false;
     let selectedResidentPhotoData = null;
 
     let climate = {
@@ -578,25 +609,152 @@
       return data;
     }
 
+    async function loadVisits() {
+      visitsLoading = true;
+      const host = $("visitsContent");
+      if (host) host.innerHTML = '<p class="muted">Cargando solicitudes de ingreso...</p>';
+      try {
+        const data = await api("GET", "/api/visits");
+        visitsData = Array.isArray(data.visits) ? data.visits : [];
+        renderVisits();
+      } catch (error) {
+        if (host) host.innerHTML = `<p style="color:var(--danger)">${escapeHTML(error.message)}</p><button class="btn" id="reloadVisits">REINTENTAR</button>`;
+      } finally {
+        visitsLoading = false;
+      }
+    }
+
+    function visitStatusLabel(status) {
+      return ({ pending: "PENDIENTE", accepted: "ACEPTADA", rejected: "RECHAZADA", expired: "VENCIDA" })[status] || String(status || "SIN ESTADO").toUpperCase();
+    }
+
+    function renderVisits() {
+      const host = $("visitsContent");
+      if (!host) return;
+      const pending = visitsData.filter(v => v.status === "pending");
+      const history = visitsData.filter(v => v.status !== "pending");
+      const card = v => {
+        const created = v.created_at ? new Date(v.created_at).toLocaleString("es-AR") : "Fecha no disponible";
+        const expires = v.expires_at ? new Date(v.expires_at).toLocaleString("es-AR") : "";
+        const statusColor = v.status === "pending" ? "var(--gold)" : (v.status === "accepted" ? "var(--ok)" : "var(--mu)");
+        return `<article class="card" style="margin-bottom:12px">
+          <div class="row" style="align-items:flex-start;gap:12px">
+            <div style="flex:1;min-width:0">
+              <h3 style="margin:0 0 6px">${escapeHTML(v.visitor_name || "Visitante")}</h3>
+              <p class="muted" style="margin:0">${escapeHTML(v.visitor_reason || "Sin motivo informado")}</p>
+              <small class="muted">${escapeHTML(created)}</small>
+            </div>
+            <strong style="color:${statusColor};font-size:11px">${visitStatusLabel(v.status)}</strong>
+          </div>
+          ${v.photo_storage_key ? `<p class="muted" style="margin:10px 0 0">El visitante adjuntó una fotografía.</p>` : ""}
+          ${v.status === "pending" ? `<p class="muted" style="margin:10px 0 0">${expires ? "Vence: " + escapeHTML(expires) : ""}</p>
+            <div class="row" style="margin-top:12px;gap:8px;justify-content:flex-end">
+              <button class="btn" data-visit-call="${escapeHTML(v.id)}">VIDEOLLAMADA</button>
+              <button class="btn danger" data-visit-decision="rejected" data-visit-id="${escapeHTML(v.id)}">RECHAZAR</button>
+              <button class="btn primary" data-visit-decision="accepted" data-visit-id="${escapeHTML(v.id)}">ACEPTAR INGRESO</button>
+            </div>` : ""}
+        </article>`;
+      };
+      host.innerHTML = `<div class="row" style="margin-bottom:12px"><div><h2 style="margin:0">Solicitudes pendientes</h2><p class="muted" style="margin:4px 0 0">${pending.length} visitante(s) esperando respuesta</p></div><button class="btn" id="reloadVisits">ACTUALIZAR</button></div>
+        ${pending.length ? pending.map(card).join("") : '<div class="card"><p class="muted">No hay solicitudes pendientes de ingreso.</p></div>'}
+        <h2 style="margin:24px 0 12px">Actividad reciente</h2>
+        ${history.length ? history.slice(0, 20).map(card).join("") : '<div class="card"><p class="muted">Todavía no hay visitas respondidas.</p></div>'}`;
+    }
+
+    async function respondToVisit(id, decision) {
+      const button = document.querySelector(`[data-visit-id="${CSS.escape(id)}"][data-visit-decision="${decision}"]`);
+      if (button) button.disabled = true;
+      try {
+        const result = await api("PATCH", `/api/visits/${encodeURIComponent(id)}/respond`, { decision });
+        notify(result.message || (decision === "accepted" ? "Ingreso aceptado." : "Ingreso rechazado."));
+        await loadVisits();
+      } catch (error) {
+        notify(error.message);
+        await loadVisits();
+      }
+    }
+
+    let residentCall = null;
+
+    async function startResidentCall(visitId) {
+      if (residentCall) { notify("Ya hay una llamada activa."); return; }
+      const rawId = prompt("Ingresá el ID numérico de la visita correspondiente en UniGuard:");
+      if (rawId === null) return;
+      const uniguardVisitId = Number(rawId.trim());
+      if (!Number.isSafeInteger(uniguardVisitId) || uniguardVisitId < 1) { notify("El ID de UniGuard debe ser un número válido."); return; }
+      try {
+        const data = await api("POST", `/api/visits/${encodeURIComponent(visitId)}/call`, { uniguard_visit_id: uniguardVisitId });
+        const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        const remoteStream = new MediaStream();
+        const panel = document.createElement("section");
+        panel.className = "card"; panel.id = "residentCallPanel"; panel.style.cssText = "position:fixed;z-index:9999;inset:auto 16px 16px 16px;max-width:620px;margin:auto;background:#111112;border:1px solid var(--gold);box-shadow:0 10px 40px #000";
+        panel.innerHTML = `<h3 style="margin-top:0">Videollamada con el tótem</h3><video id="residentRemoteVideo" autoplay playsinline style="width:100%;max-height:48vh;background:#000;border-radius:10px"></video><p class="muted">El audio del visitante se reproduce automáticamente. Tu micrófono solo se activa mientras mantenés presionado el botón.</p><div class="row" style="gap:8px"><button class="btn primary" id="residentPtt" type="button">MANTENER PARA HABLAR</button><button class="btn danger" id="residentHangup" type="button">FINALIZAR</button></div>`;
+        document.body.appendChild(panel);
+        $("residentRemoteVideo").srcObject = remoteStream;
+        const audioTransceiver = pc.addTransceiver("audio", { direction: "sendrecv" });
+        const socket = new WebSocket(data.ws_url);
+        residentCall = { pc, socket, panel, mic: null, audioTransceiver };
+        pc.ontrack = event => { event.streams[0]?.getTracks().forEach(track => { if (!remoteStream.getTracks().some(t => t.id === track.id)) remoteStream.addTrack(track); }); };
+        pc.onicecandidate = event => { if (event.candidate && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "signal", data: { kind: "candidate", candidate: event.candidate } })); };
+        socket.onmessage = async event => {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "signal") {
+            const signal = msg.data || {};
+            if (signal.kind === "description" && signal.description) {
+              await pc.setRemoteDescription(signal.description);
+              if (signal.description.type === "offer") { const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.send(JSON.stringify({ type: "signal", data: { kind: "description", description: pc.localDescription } })); }
+            } else if (signal.kind === "candidate" && signal.candidate) { try { await pc.addIceCandidate(signal.candidate); } catch (e) { console.warn("ICE:", e); } }
+          } else if (msg.type === "call_ended") { finishResidentCall(false); notify("La videollamada finalizó."); }
+          else if (msg.type === "call_peer") { /* El tótem inicia la oferta cuando se conecta. */ }
+        };
+        socket.onerror = () => notify("Error de conexión con la videollamada.");
+        socket.onclose = () => { if (residentCall) finishResidentCall(false); };
+        const ptt = $("residentPtt");
+        const enableMic = async () => {
+          if (!residentCall || residentCall.mic) return;
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+            residentCall.mic = stream;
+            const sender = audioTransceiver.sender;
+            await sender.replaceTrack(stream.getAudioTracks()[0]);
+            ptt.textContent = "HABLANDO…";
+          } catch (e) { notify("No se pudo habilitar el micrófono. Revisá los permisos del navegador."); }
+        };
+        const disableMic = () => { if (!residentCall) return; if (residentCall.mic) { residentCall.mic.getTracks().forEach(track => track.stop()); residentCall.mic = null; audioTransceiver.sender.replaceTrack(null).catch(() => { }); } ptt.textContent = "MANTENER PARA HABLAR"; };
+        ptt.addEventListener("pointerdown", event => { event.preventDefault(); enableMic(); });
+        ["pointerup", "pointerleave", "pointercancel", "lostpointercapture"].forEach(name => ptt.addEventListener(name, disableMic));
+        $("residentHangup").addEventListener("click", () => finishResidentCall(true));
+      } catch (error) { notify(error.message); }
+    }
+
+    function finishResidentCall(sendHangup = true) {
+      const call = residentCall; if (!call) return; residentCall = null;
+      if (call.mic) call.mic.getTracks().forEach(track => track.stop());
+      if (sendHangup && call.socket.readyState === WebSocket.OPEN) call.socket.send(JSON.stringify({ type: "hangup" }));
+      try { call.socket.close(); } catch (e) { }
+      try { call.pc.close(); } catch (e) { }
+      call.panel?.remove();
+    }
+
     const roomDefinitions = [
-      ["dormitorio_1", "Dormitorio 1"],
-      ["dormitorio_2", "Dormitorio 2"],
+      ["dormitorio-1", "Dormitorio 1"],
+      ["dormitorio-2", "Dormitorio 2"],
       ["bano", "Baño"],
       ["antebano", "Antebaño"],
-      ["cocina_comedor", "Cocina-comedor"],
-      ["sala_estar", "Sala de estar"],
+      ["cocina-comedor", "Cocina-comedor"],
+      ["sala-de-estar", "Sala de estar"],
       ["balcon", "Balcón"]
     ];
 
     const lightsDefinitions = [
-      ["luz-dorm1", "dormitorio_1", "Luz dormitorio 1"],
-      ["luz-velador", "dormitorio_1", "Velador"],
-      ["luz-dorm2", "dormitorio_2", "Luz dormitorio 2"],
+      ["luz-dorm1", "dormitorio-1", "Luz dormitorio 1"],
+      ["luz-velador", "dormitorio-1", "Velador"],
+      ["luz-dorm2", "dormitorio-2", "Luz dormitorio 2"],
       ["luz-bano", "bano", "Luz baño"],
       ["luz-antebano", "antebano", "Luz antebaño"],
-      ["luz-cocina", "cocina_comedor", "Luz cocina"],
-      ["luz-comedor", "cocina_comedor", "Luz comedor"],
-      ["luz-estar", "sala_estar", "Luz sala de estar"],
+      ["luz-cocina", "cocina-comedor", "Luz cocina"],
+      ["luz-comedor", "cocina-comedor", "Luz comedor"],
+      ["luz-estar", "sala-de-estar", "Luz sala de estar"],
       ["luz-balcon", "balcon", "Luz balcón"]
     ];
 
@@ -644,7 +802,7 @@
         };
       });
 
-      const central = rooms.find(r => r.id === "sala_estar");
+      const central = rooms.find(r => r.id === "sala-de-estar");
       if (central?.state?.desired?.climate) {
         climate = { ...climate, ...central.state.desired.climate };
       }
@@ -662,7 +820,7 @@
         desired: {
           ...(room.state.desired || {}),
           lights,
-          ...(room.id === "sala_estar" ? { climate: { ...climate } } : {})
+          ...(room.id === "sala-de-estar" ? { climate: { ...climate } } : {})
         },
         reported: room.state.reported || {}
       };
@@ -807,41 +965,28 @@
 
     $("main").addEventListener("change", async event => {
       if (event.target.id !== "newResidentPhoto") return;
-
       const file = event.target.files?.[0];
       selectedResidentPhotoData = null;
       const preview = $("residentPhotoPreview");
-
       if (!file) {
         if (preview) preview.textContent = "Vista previa";
         return;
       }
-
       const allowed = ["image/jpeg", "image/png", "image/webp"];
-
       if (!allowed.includes(file.type) || file.size > 3 * 1024 * 1024) {
         event.target.value = "";
-        if (preview) {
-          preview.textContent = "Formato no válido o archivo mayor a 3 MB";
-        }
+        if (preview) preview.textContent = "Formato no válido o archivo mayor a 3 MB";
         notify("Elegí una imagen JPG, PNG o WEBP de hasta 3 MB.");
         return;
       }
-
       try {
         selectedResidentPhotoData = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(
-            new Error("No se pudo leer la fotografía.")
-          );
+          reader.onerror = () => reject(new Error("No se pudo leer la fotografía."));
           reader.readAsDataURL(file);
         });
-
-        if (preview) {
-          preview.innerHTML = `<img src="${selectedResidentPhotoData}" alt="Vista previa de la fotografía">`;
-        }
-
+        if (preview) preview.innerHTML = `<img src="${selectedResidentPhotoData}" alt="Vista previa de la fotografía">`;
       } catch (error) {
         selectedResidentPhotoData = null;
         notify(error.message);
@@ -858,37 +1003,27 @@
         const pin = $("newResidentPin").value.trim();
 
         if (!email || password.length < 8) {
-          $("createError").textContent =
-            "Completá el correo y una contraseña de al menos 8 caracteres.";
+          $("createError").textContent = "Completá el correo y una contraseña de al menos 8 caracteres.";
           return;
         }
-
         if (!/^\d{6}$/.test(pin)) {
-          $("createError").textContent =
-            "El PIN debe tener exactamente 6 números.";
+          $("createError").textContent = "El PIN debe tener exactamente 6 números.";
           return;
         }
-
         if (!selectedResidentPhotoData) {
-          $("createError").textContent =
-            "Seleccioná la fotografía del residente.";
+          $("createError").textContent = "Seleccioná la fotografía del residente.";
           return;
         }
 
         try {
           await api("POST", "/api/admin/users", {
-            email,
-            password,
-            department,
-            pin,
+            email, password, department, pin,
             photoData: selectedResidentPhotoData
           });
-
           selectedResidentPhotoData = null;
           await loadAdminUsers();
           renderAdmin();
           notify("Usuario creado con fotografía y PIN.");
-
         } catch (e) {
           $("createError").textContent = e.message;
         }
@@ -898,15 +1033,12 @@
         try {
           await loadAdminUsers();
           renderAdmin();
-        } catch (e) {
-          notify(e.message);
-        }
+        } catch (e) { notify(e.message) }
       }
 
       if (event.target.id === "adminLogout") logout();
 
       const passButton = event.target.closest("[data-password]");
-
       if (passButton) {
         const id = passButton.dataset.password;
         const password = $("pass-" + id).value;
@@ -917,55 +1049,40 @@
         }
 
         try {
-          await api(
-            "POST",
-            `/api/admin/users/${encodeURIComponent(id)}/password`,
-            { password }
-          );
-
+          await api("POST", `/api/admin/users/${encodeURIComponent(id)}/password`, { password });
           notify("Contraseña actualizada.");
           await loadAdminUsers();
           renderAdmin();
-
-        } catch (e) {
-          notify(e.message);
-        }
+        } catch (e) { notify(e.message) }
       }
 
       const deleteButton = event.target.closest("[data-delete]");
-
       if (deleteButton) {
         if (!confirm("¿Querés eliminar este usuario?")) return;
 
         try {
-          await api(
-            "DELETE",
-            `/api/admin/users/${encodeURIComponent(deleteButton.dataset.delete)}`
-          );
-
+          await api("DELETE", `/api/admin/users/${encodeURIComponent(deleteButton.dataset.delete)}`);
           await loadAdminUsers();
           renderAdmin();
           notify("Usuario eliminado.");
-
-        } catch (e) {
-          notify(e.message);
-        }
+        } catch (e) { notify(e.message) }
       }
     });
-        const navItems = [
-            ["inicio", "Inicio"],
-            ["ambientes", "Ambientes"],
-            ["luces", "Iluminación"],
-            ["clima", "Climatización"],
-            ["sensores", "Sensores"],
-            ["seguridad", "Seguridad"],
-            ["ingreso", "Ingreso"],
-            ["historial", "Historial"],
-            ["ajustes", "Ajustes"]
-          ];
 
-          function renderNav() {
-            $("nav").innerHTML = `
+    const navItems = [
+      ["inicio", "Inicio"],
+      ["ambientes", "Ambientes"],
+      ["luces", "Iluminación"],
+      ["clima", "Climatización"],
+      ["sensores", "Sensores"],
+      ["seguridad", "Seguridad"],
+      ["ingreso", "Ingreso"],
+      ["historial", "Historial"],
+      ["ajustes", "Ajustes"]
+    ];
+
+    function renderNav() {
+      $("nav").innerHTML = `
     <div class="logo">ARGUSS<small>${escapeHTML(currentUser?.email || "")}</small></div>
     ${navItems.map(item => `
       <a data-view="${item[0]}" class="${currentView === item[0] ? "active" : ""}">
@@ -973,10 +1090,10 @@
       </a>
     `).join("")}
   `;
-          }
+    }
 
-          function header(title, description) {
-            return `
+    function header(title, description) {
+      return `
     <div class="top-bar">
       <div>
         <h1>${title}</h1>
@@ -984,20 +1101,20 @@
       </div>
       <span class="chip bad"><i class="dot"></i>Sin respuesta del ESP32</span>
     </div>`;
-          }
+    }
 
-          function roomCard(room) {
-            return `
+    function roomCard(room) {
+      return `
     <div class="card">
       <h2>${room.name}</h2>
       <p class="muted">${room.lights.filter(l => l.on).length} luces encendidas por orden</p>
       <button class="btn" data-room="${room.id}" style="margin-top:10px">VER AMBIENTE</button>
     </div>
   `;
-          }
+    }
 
-          function lightControl(room, light) {
-            return `
+    function lightControl(room, light) {
+      return `
     <div class="row">
       <span>${escapeHTML(light.name)}</span>
       <button class="switch ${light.on ? "on" : ""}" data-light="${escapeHTML(light.id)}">
@@ -1005,90 +1122,49 @@
       </button>
     </div>
   `;
-          }
+    }
 
-          function updateClock() {
-            const clk = $("clk");
-            const dd = $("dd");
-            const dw = $("dw");
+    function updateClock() {
+      const clk = $("clk");
+      const dd = $("dd");
+      const dw = $("dw");
+      if (!clk) return;
+      const now = new Date();
+      clk.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (dd) dd.textContent = now.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase();
+      if (dw) dw.textContent = now.toLocaleDateString('es-AR', { weekday: 'long' }).toUpperCase();
+    }
+    setInterval(updateClock, 1000);
 
-            if (!clk) return;
+    function render() {
+      if (currentUser?.role === "admin") {
+        renderAdmin();
+        return;
+      }
 
-            const now = new Date();
+      renderNav();
+      const main = $("main");
 
-            clk.textContent = now.toLocaleTimeString('es-AR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            });
+      if (currentView === "inicio") {
+        const totalLights = rooms.reduce((acc, r) => acc + r.lights.length, 0);
+        const activeLights = rooms.reduce((acc, r) => acc + r.lights.filter(l => l.on).length, 0);
+        const deptName = currentUser?.department ? `Departamento ${currentUser.department}` : (currentUser?.email || "Departamento 1");
 
-            if (dd) {
-              dd.textContent = now.toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: 'short'
-              }).replace('.', '').toUpperCase();
-            }
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
 
-            if (dw) {
-              dw.textContent = now.toLocaleDateString('es-AR', {
-                weekday: 'long'
-              }).toUpperCase();
-            }
-          }
+        const months = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+        const days = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+        const dayNum = String(now.getDate()).padStart(2, '0');
+        const monthStr = months[now.getMonth()];
+        const dayName = days[now.getDay()];
+        const dateStr = `${dayNum}-${monthStr}`;
 
-          setInterval(updateClock, 1000);
+        const activeClimateText = climate.boiler ? "Caldera" : (climate.ac ? "Aire Acondicionado" : "En reposo");
 
-          function render() {
-            if (currentUser?.role === "admin") {
-              renderAdmin();
-              return;
-            }
-
-            renderNav();
-
-            const main = $("main");
-
-            if (currentView === "inicio") {
-              const totalLights = rooms.reduce(
-                (acc, r) => acc + r.lights.length,
-                0
-              );
-
-              const activeLights = rooms.reduce(
-                (acc, r) => acc + r.lights.filter(l => l.on).length,
-                0
-              );
-
-              const deptName = currentUser?.department
-                ? `Departamento ${currentUser.department}`
-                : (currentUser?.email || "Departamento 1");
-
-              const now = new Date();
-
-              const hours = String(now.getHours()).padStart(2, '0');
-              const minutes = String(now.getMinutes()).padStart(2, '0');
-              const timeStr = `${hours}:${minutes}`;
-
-              const months = [
-                "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
-                "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"
-              ];
-
-              const days = [
-                "DOMINGO", "LUNES", "MARTES", "MIÉRCOLES",
-                "JUEVES", "VIERNES", "SÁBADO"
-              ];
-
-              const dayNum = String(now.getDate()).padStart(2, '0');
-              const monthStr = months[now.getMonth()];
-              const dayName = days[now.getDay()];
-              const dateStr = `${dayNum}-${monthStr}`;
-
-              const activeClimateText = climate.boiler
-                ? "Caldera"
-                : (climate.ac ? "Aire Acondicionado" : "En reposo");
-
-              main.innerHTML = `
+        main.innerHTML = `
       <div class="top-bar">
         <div>
           <h1>ARGUSS · ${escapeHTML(deptName)}</h1>
@@ -1100,55 +1176,27 @@
       <div class="hero">
         <div class="hl">
           <div class="clk" id="clk">${timeStr}</div>
-
           <button class="mic" onclick="notify('Escuchando orden de voz...')">
-            <svg class="r" viewBox="0 0 170 170">
-              <circle cx="85" cy="85" r="80" stroke-width="2"
-                stroke-dasharray="1 6" stroke-linecap="round"/>
-              <circle cx="85" cy="85" r="68" stroke-width="1.5"
-                stroke-dasharray="1 5" stroke-linecap="round" opacity=".6"/>
-            </svg>
-
-            <svg style="width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:1.5"
-              viewBox="0 0 24 24">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v1a7 7 0 0 1-14 0v-1M12 18.5V22M8 22h8"/>
-            </svg>
+            <svg class="r" viewBox="0 0 170 170"><circle cx="85" cy="85" r="80" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/><circle cx="85" cy="85" r="68" stroke-width="1.5" stroke-dasharray="1 5" stroke-linecap="round" opacity=".6"/></svg>
+            <svg style="width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:1.5" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v1a7 7 0 0 1-14 0v-1M12 18.5V22M8 22h8"/></svg>
           </button>
-
-          <div class="muted" style="font-size:12px">
-            Tocá el micrófono y decí: “prendé la luz del dormitorio 1”
-          </div>
-
-          <div class="dt">
-            <span id="dd">${dateStr}</span>
-            <small id="dw">${dayName}</small>
-          </div>
+          <div class="muted" style="font-size:12px">Tocá el micrófono y decí: “prendé la luz del dormitorio 1”</div>
+          <div class="dt"><span id="dd">${dateStr}</span><small id="dw">${dayName}</small></div>
         </div>
 
         <div class="hr">
           <div class="hex">
-            <svg viewBox="0 0 220 190">
-              <polygon points="62,4 158,4 214,95 158,186 62,186 6,95"/>
-            </svg>
-
+            <svg viewBox="0 0 220 190"><polygon points="62,4 158,4 214,95 158,186 62,186 6,95"/></svg>
             <div>
               <span class="muted">Temperatura <span style="color:var(--ok)">real</span></span>
               <span style="font-size:36px;font-weight:300">—</span>
               <span style="color:var(--gold);font-size:13px">❄ ${escapeHTML(activeClimateText)}</span>
-              <span class="muted" style="border-top:1px solid var(--bd);padding-top:6px;font-size:11px">
-                Objetivo ${climate.target} °C
-              </span>
+              <span class="muted" style="border-top:1px solid var(--bd);padding-top:6px;font-size:11px">Objetivo ${climate.target} °C</span>
             </div>
           </div>
-
           <div style="max-width:240px;margin:15px auto 0">
-            <label style="font-size:11px;color:var(--mu)">
-              Objetivo ${climate.target} °C
-            </label>
-            <input type="range" min="16" max="30" step="0.5"
-              value="${climate.target}"
-              oninput="climate.target=this.value;persistClimate()"
-              style="margin:4px 0 0">
+            <label style="font-size:11px;color:var(--mu)">Objetivo ${climate.target} °C</label>
+            <input type="range" min="16" max="30" step="0.5" value="${climate.target}" oninput="climate.target=this.value;persistClimate()" style="margin:4px 0 0">
           </div>
         </div>
       </div>
@@ -1159,84 +1207,56 @@
           <div style="font-size:26px;font-weight:300;margin:6px 0">—</div>
           <div class="muted">Sin sensores válidos</div>
         </div>
-
         <div class="card">
           <div class="muted">Iluminación</div>
-          <div style="font-size:26px;font-weight:300;margin:6px 0">
-            ${activeLights}/${totalLights}
-          </div>
+          <div style="font-size:26px;font-weight:300;margin:6px 0">${activeLights}/${totalLights}</div>
           <div class="muted">luces encendidas</div>
         </div>
-
         <div class="card">
           <div class="muted">Climatización</div>
-          <div style="font-size:22px;font-weight:300;margin:6px 0">
-            ❄ ${escapeHTML(activeClimateText)}
-          </div>
-          <div class="muted">
-            ${climate.mode === 'auto' ? 'Automático' : 'Manual'} · objetivo ${climate.target} °C
-          </div>
+          <div style="font-size:22px;font-weight:300;margin:6px 0">❄ ${escapeHTML(activeClimateText)}</div>
+          <div class="muted">${climate.mode === 'auto' ? 'Automático' : 'Manual'} · objetivo ${climate.target} °C</div>
         </div>
-
         <div class="card" onclick="currentView='seguridad';render()" style="cursor:pointer">
           <div class="muted">Puertas y ventanas</div>
-          <div style="font-size:24px;font-weight:300;margin:6px 0;color:var(--ok)">
-            Todo cerrado
-          </div>
+          <div style="font-size:24px;font-weight:300;margin:6px 0;color:var(--ok)">Todo cerrado</div>
           <div class="muted">Verificar sensores</div>
         </div>
-
         <div class="card">
           <div class="muted">Ambientes</div>
-          <div style="font-size:26px;font-weight:300;margin:6px 0">
-            ${rooms.length}
-          </div>
+          <div style="font-size:26px;font-weight:300;margin:6px 0">${rooms.length}</div>
           <div class="muted">0 dispositivos conectados de 21</div>
         </div>
       </div>
     `;
-            }
+      }
 
-            if (currentView === "ambientes") {
-              main.innerHTML =
-                header("Ambientes", "Tus siete ambientes.") +
-                `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
-            }
+      if (currentView === "ambientes") {
+        main.innerHTML = header("Ambientes", "Tus siete ambientes.") +
+          `<div class="grid">${rooms.map(roomCard).join("")}</div>`;
+      }
 
-            if (currentView === "luces") {
-              main.innerHTML =
-                header("Iluminación", "Control de luces por ambiente.") +
-                rooms.map(room => `
+      if (currentView === "luces") {
+        main.innerHTML = header("Iluminación", "Control de luces por ambiente.") +
+          rooms.map(room => `
         <h2>${room.name}</h2>
         <div class="card" style="margin-top:8px">
           ${room.lights.map(light => lightControl(room, light)).join("")}
         </div>
       `).join("");
-            }
+      }
 
-            if (currentView.startsWith("room:")) {
-              const room = rooms.find(
-                r => r.id === currentView.split(":")[1]
-              );
+      if (currentView.startsWith("room:")) {
+        const room = rooms.find(r => r.id === currentView.split(":")[1]);
+        if (!room) { currentView = "ambientes"; render(); return; }
 
-              if (!room) {
-                currentView = "ambientes";
-                render();
-                return;
-              }
+        main.innerHTML = header(room.name, "Control del ambiente.") +
+          `<div class="card">${room.lights.map(light => lightControl(room, light)).join("")}</div>`;
+      }
 
-              main.innerHTML =
-                header(room.name, "Control del ambiente.") +
-                `<div class="card">${room.lights.map(light => lightControl(room, light)).join("")}</div>`;
-            }
-
-            if (currentView === "clima") {
-              main.innerHTML =
-                header(
-                  "Climatización",
-                  "Configuración de calderas y aires acondicionados."
-                ) +
-                `<div class="grid" style="margin-top:15px">
+      if (currentView === "clima") {
+        main.innerHTML = header("Climatización", "Configuración de calderas y aires acondicionados.") +
+          `<div class="grid" style="margin-top:15px">
         <div class="card">
           <h2>Temperatura objetivo</h2>
           <div class="row" style="border:0">
@@ -1248,16 +1268,14 @@
 
         <div class="card">
           <h2>Calderas</h2>
-          <button class="switch ${climate.boiler ? "on" : ""}"
-            data-climate="boiler" style="margin-top:10px">
+          <button class="switch ${climate.boiler ? "on" : ""}" data-climate="boiler" style="margin-top:10px">
             ${climate.boiler ? "ENCENDIDA" : "APAGADA"}
           </button>
         </div>
 
         <div class="card">
           <h2>Aires acondicionados</h2>
-          <button class="switch ${climate.ac ? "on" : ""}"
-            data-climate="ac" style="margin-top:10px">
+          <button class="switch ${climate.ac ? "on" : ""}" data-climate="ac" style="margin-top:10px">
             ${climate.ac ? "ENCENDIDO" : "APAGADO"}
           </button>
         </div>
@@ -1268,55 +1286,37 @@
             <option value="auto" ${climate.mode === "auto" ? "selected" : ""}>Automático</option>
             <option value="manual" ${climate.mode === "manual" ? "selected" : ""}>Manual</option>
           </select>
-
           <label>Umbral caldera</label>
           <input id="lowTemp" type="number" value="${climate.low}">
-
           <label>Umbral aire acondicionado</label>
           <input id="highTemp" type="number" value="${climate.high}">
-
-          <button class="btn primary" id="saveClimate"
-            style="width:100%;margin-top:10px">
-            Guardar configuración
-          </button>
+          <button class="btn primary" id="saveClimate" style="width:100%;margin-top:10px">Guardar configuración</button>
         </div>
       </div>
+      <p class="muted" style="margin-top:15px">Las órdenes se guardan en la nube. Requieren la conexión y configuración del hardware para controlar equipos físicos.</p>`;
+      }
 
-      <p class="muted" style="margin-top:15px">
-        Las órdenes se guardan en la nube. Requieren la conexión y configuración del hardware para controlar equipos físicos.
-      </p>`;
-            }
-
-            if (currentView === "sensores") {
-              main.innerHTML =
-                header("Sensores", "Lecturas reportadas por los equipos.") +
-                `<div class="card" style="margin-top:15px">
-        <p class="muted">
-          Todavía no hay lecturas físicas confirmadas. La ESP32 debe enviar los datos a la nube.
-        </p>
+      if (currentView === "sensores") {
+        main.innerHTML = header("Sensores", "Lecturas reportadas por los equipos.") +
+          `<div class="card" style="margin-top:15px">
+        <p class="muted">Todavía no hay lecturas físicas confirmadas. La ESP32 debe enviar los datos a la nube.</p>
         <div class="row"><span>Temperatura</span><b>—</b></div>
         <div class="row"><span>Humedad</span><b>—</b></div>
         <div class="row"><span>Oxígeno</span><b>—</b></div>
         <div class="row"><span>Luminosidad</span><b>—</b></div>
       </div>`;
-            }
+      }
 
-            if (currentView === "seguridad") {
-              main.innerHTML =
-                header(
-                  "Seguridad",
-                  "Monitoreo de aberturas y detección de humo."
-                ) +
-                `<div class="grid" style="margin-top:15px">
+      if (currentView === "seguridad") {
+        main.innerHTML = header("Seguridad", "Monitoreo de aberturas y detección de humo.") +
+          `<div class="grid" style="margin-top:15px">
         <div class="card">
           <h2>Detector de Humo / Gas</h2>
           <div class="row" style="margin-top:10px">
             <span>Estado del sensor</span>
             <b style="color:var(--ok)">Normal (Sin humo)</b>
           </div>
-          <p class="muted" style="margin-top:8px">
-            El ESP32 no reporta presencia de humo en el ambiente.
-          </p>
+          <p class="muted" style="margin-top:8px">El ESP32 no reporta presencia de humo en el ambiente.</p>
         </div>
 
         <div class="card">
@@ -1325,9 +1325,7 @@
             <span>Estado general</span>
             <b style="color:var(--ok)">Todo cerrado</b>
           </div>
-          <p class="muted" style="margin-top:8px">
-            No se detectaron aberturas activas en los ambientes.
-          </p>
+          <p class="muted" style="margin-top:8px">No se detectaron aberturas activas en los ambientes.</p>
         </div>
       </div>
 
@@ -1343,246 +1341,181 @@
           </div>
         `).join("")}
       </div>`;
-            }
+      }
 
-            /* INGRESO: PENDIENTE DE CONEXIÓN CON LA BASE DE DATOS */
+      if (currentView === "ingreso") {
+        main.innerHTML = header("Ingreso", "Solicitudes de visitantes y autorización de acceso.") +
+          `<section style="margin-top:15px" id="visitsContent"><div class="card"><p class="muted">Cargando solicitudes de ingreso...</p></div></section>`;
+        loadVisits();
+      }
 
-            if (currentView === "ingreso") {
-              main.innerHTML =
-                header("Ingreso", "Control de acceso de la vivienda.") +
-                `<div class="card" style="margin-top:15px">
-            <h2>Control de ingreso</h2>
-            <p class="muted">
-              Esta sección está pendiente de conexión con la base de datos.
-              Los estados de acceso y los movimientos se incorporarán cuando
-              estén disponibles los endpoints correspondientes.
-            </p>
-          </div>`;
-            }
+      if (currentView === "historial") {
+        main.innerHTML = header("Historial", "Cambios registrados en la nube.") +
+          `<div class="card" style="margin-top:15px" id="historyContent">Cargando historial...</div>`;
+        loadHistory();
+      }
 
-            if (currentView === "historial") {
-              main.innerHTML =
-                header("Historial", "Cambios registrados en la nube.") +
-                `<div class="card" style="margin-top:15px" id="historyContent">Cargando historial...</div>`;
-
-              loadHistory();
-            }
-
-            if (currentView === "ajustes") {
-              main.innerHTML =
-                header("Ajustes", "Tu cuenta y seguridad.") +
-                `<div class="card" style="margin-top:15px">
-        <div class="row">
-          <span>Usuario</span>
-          <b>${escapeHTML(currentUser?.email)}</b>
-        </div>
-
-        <div class="row">
-          <span>Departamento</span>
-          <b>${escapeHTML(currentUser?.department || "1")}</b>
-        </div>
-
-        <div class="row">
-          <span>Servidor</span>
-          <span class="muted">ARGUSS Cloud</span>
-        </div>
-
+      if (currentView === "ajustes") {
+        main.innerHTML = header("Ajustes", "Tu cuenta y seguridad.") +
+          `<div class="card" style="margin-top:15px">
+        <div class="row"><span>Usuario</span><b>${escapeHTML(currentUser?.email)}</b></div>
+        <div class="row"><span>Departamento</span><b>${escapeHTML(currentUser?.department || "1")}</b></div>
+        <div class="row"><span>Servidor</span><span class="muted">ARGUSS Cloud</span></div>
         <div style="margin-top:20px">
-          <button class="btn danger" id="logoutButton" style="width:100%">
-            Cerrar sesión
-          </button>
+          <button class="btn danger" id="logoutButton" style="width:100%">Cerrar sesión</button>
         </div>
       </div>`;
-            }
-          }
-              async function persistClimate() {
-                  const room = rooms.find(r => r.id === "sala_estar");
-                  if (!room) return;
-                  await saveRoom(room);
-                }
+      }
+    }
 
-                async function loadHistory() {
-                  try {
-                    const data = await api("GET", "/api/history");
+    async function persistClimate() {
+      const room = rooms.find(r => r.id === "sala-de-estar");
+      if (!room) return;
+      await saveRoom(room);
+    }
 
-                    historyData = Array.isArray(data)
-                      ? data
-                      : (data.history || data.items || []);
+    async function loadHistory() {
+      try {
+        const data = await api("GET", "/api/history");
+        historyData = Array.isArray(data) ? data : (data.history || data.items || []);
+        const el = $("historyContent");
+        if (el) {
+          el.innerHTML = historyData.length
+            ? historyData.map(h => `<div class="row">${escapeHTML(h.message || h.action || "Cambio registrado")}<span class="muted">${escapeHTML(h.created_at || "")}</span></div>`).join("")
+            : "Todavía no hay cambios registrados.";
+        }
+      } catch (e) {
+        const el = $("historyContent");
+        if (el) el.textContent = e.message;
+      }
+    }
 
-                    const el = $("historyContent");
+    $("nav").addEventListener("click", event => {
+      const link = event.target.closest("[data-view]");
+      if (link) {
+        currentView = link.dataset.view;
+        render();
+      }
+    });
 
-                    if (el) {
-                      el.innerHTML = historyData.length
-                        ? historyData.map(h => `
-                <div class="row">
-                  ${escapeHTML(h.message || h.action || "Cambio registrado")}
-                  <span class="muted">${escapeHTML(h.created_at || "")}</span>
-                </div>
-              `).join("")
-                        : "Todavía no hay cambios registrados.";
-                    }
+    $("main").addEventListener("click", async event => {
+      if (currentUser?.role === "admin") return;
 
-                  } catch (e) {
-                    const el = $("historyContent");
-                    if (el) el.textContent = e.message;
-                  }
-                }
+      const roomButton = event.target.closest("[data-room]");
+      if (roomButton) {
+        currentView = "room:" + roomButton.dataset.room;
+        render();
+        return;
+      }
 
-                $("nav").addEventListener("click", event => {
-                  const link = event.target.closest("[data-view]");
+      const lightButton = event.target.closest("[data-light]");
+      if (lightButton) {
+        const room = rooms.find(r => r.lights.some(l => l.id === lightButton.dataset.light));
+        const light = room?.lights.find(l => l.id === lightButton.dataset.light);
+        if (light && room) {
+          light.on = !light.on;
+          render();
+          await saveRoom(room);
+        }
+        return;
+      }
 
-                  if (link) {
-                    currentView = link.dataset.view;
-                    render();
-                  }
-                });
+      const climateButton = event.target.closest("[data-climate]");
+      if (climateButton) {
+        const key = climateButton.dataset.climate;
+        climate[key] = !climate[key];
+        if (key === "boiler" && climate.boiler) climate.ac = false;
+        if (key === "ac" && climate.ac) climate.boiler = false;
+        render();
+        await persistClimate();
+        return;
+      }
 
-                $("main").addEventListener("click", async event => {
-                  if (currentUser?.role === "admin") return;
+      const targetButton = event.target.closest("[data-target]");
+      if (targetButton) {
+        climate.target = Math.max(16, Math.min(30, climate.target + Number(targetButton.dataset.target)));
+        render();
+        await persistClimate();
+        return;
+      }
 
-                  const roomButton = event.target.closest("[data-room]");
+      if (event.target.id === "saveClimate") {
+        const low = Number($("lowTemp").value);
+        const high = Number($("highTemp").value);
 
-                  if (roomButton) {
-                    currentView = "room:" + roomButton.dataset.room;
-                    render();
-                    return;
-                  }
+        if (low >= high) { notify("El umbral de caldera debe ser menor que el del aire."); return; }
 
-                  const lightButton = event.target.closest("[data-light]");
+        climate.low = low;
+        climate.high = high;
+        climate.mode = $("climateMode").value;
+        await persistClimate();
+        render();
+        return;
+      }
 
-                  if (lightButton) {
-                    const room = rooms.find(
-                      r => r.lights.some(l => l.id === lightButton.dataset.light)
-                    );
+      const visitCall = event.target.closest("[data-visit-call]");
+      if (visitCall) { await startResidentCall(visitCall.dataset.visitCall); return; }
 
-                    const light = room?.lights.find(
-                      l => l.id === lightButton.dataset.light
-                    );
+      const visitDecision = event.target.closest("[data-visit-decision]");
+      if (visitDecision) {
+        await respondToVisit(visitDecision.dataset.visitId, visitDecision.dataset.visitDecision);
+        return;
+      }
 
-                    if (light && room) {
-                      light.on = !light.on;
-                      render();
-                      await saveRoom(room);
-                    }
+      if (event.target.id === "reloadVisits") {
+        await loadVisits();
+        return;
+      }
 
-                    return;
-                  }
+      if (event.target.id === "logoutButton") logout();
+    });
 
-                  const climateButton = event.target.closest("[data-climate]");
+    function logout() {
+      finishResidentCall(true);
+      clearToken();
+      currentUser = null;
+      rooms = [];
+      adminUsers = [];
+      selectedResidentPhotoData = null;
+      document.body.classList.remove("admin-mode");
+      $("adminAccess").classList.remove("hidden");
+      $("adminPanel").classList.remove("open");
+      $("app").classList.add("hidden");
+      $("loginScreen").classList.remove("hidden");
+      $("loginEmail").value = "";
+      $("loginPassword").value = "";
+      $("adminEmail").value = "";
+      $("adminPassword").value = "";
+    }
 
-                  if (climateButton) {
-                    const key = climateButton.dataset.climate;
+    async function boot() {
+      if (!token()) return;
 
-                    climate[key] = !climate[key];
+      try {
+        const me = await api("GET", "/api/me");
+        currentUser = me.user || me;
 
-                    if (key === "boiler" && climate.boiler) {
-                      climate.ac = false;
-                    }
+        if (currentUser.role === "admin") {
+          $("loginScreen").classList.add("hidden");
+          $("app").classList.remove("hidden");
+          $("adminAccess").classList.add("hidden");
+          document.body.classList.add("admin-mode");
+          await loadAdminUsers();
+          renderAdmin();
+        } else {
+          $("loginScreen").classList.add("hidden");
+          $("app").classList.remove("hidden");
+          await loadRooms();
+          render();
+        }
+      } catch (e) {
+        clearToken();
+        currentUser = null;
+      }
+    }
 
-                    if (key === "ac" && climate.ac) {
-                      climate.boiler = false;
-                    }
+    boot();
+  </script>
+</body>
 
-                    render();
-                    await persistClimate();
-                    return;
-                  }
-
-                  const targetButton = event.target.closest("[data-target]");
-
-                  if (targetButton) {
-                    climate.target = Math.max(
-                      16,
-                      Math.min(
-                        30,
-                        climate.target + Number(targetButton.dataset.target)
-                      )
-                    );
-
-                    render();
-                    await persistClimate();
-                    return;
-                  }
-
-                  if (event.target.id === "saveClimate") {
-                    const low = Number($("lowTemp").value);
-                    const high = Number($("highTemp").value);
-
-                    if (low >= high) {
-                      notify("El umbral de caldera debe ser menor que el del aire.");
-                      return;
-                    }
-
-                    climate.low = low;
-                    climate.high = high;
-                    climate.mode = $("climateMode").value;
-
-                    await persistClimate();
-                    render();
-                    return;
-                  }
-
-                  if (event.target.id === "logoutButton") {
-                    logout();
-                  }
-                });
-
-                function logout() {
-                  clearToken();
-
-                  currentUser = null;
-                  rooms = [];
-                  adminUsers = [];
-                  selectedResidentPhotoData = null;
-
-                  document.body.classList.remove("admin-mode");
-
-                  $("adminAccess").classList.remove("hidden");
-                  $("adminPanel").classList.remove("open");
-
-                  $("app").classList.add("hidden");
-                  $("loginScreen").classList.remove("hidden");
-
-                  $("loginEmail").value = "";
-                  $("loginPassword").value = "";
-                  $("adminEmail").value = "";
-                  $("adminPassword").value = "";
-                }
-
-                async function boot() {
-                  if (!token()) return;
-
-                  try {
-                    const me = await api("GET", "/api/me");
-                    currentUser = me.user || me;
-
-                    if (currentUser.role === "admin") {
-                      $("loginScreen").classList.add("hidden");
-                      $("app").classList.remove("hidden");
-                      $("adminAccess").classList.add("hidden");
-
-                      document.body.classList.add("admin-mode");
-
-                      await loadAdminUsers();
-                      renderAdmin();
-
-                    } else {
-                      $("loginScreen").classList.add("hidden");
-                      $("app").classList.remove("hidden");
-
-                      await loadRooms();
-                      render();
-                    }
-
-                  } catch (e) {
-                    clearToken();
-                    currentUser = null;
-                  }
-                }
-
-                boot();
-              </script>
-  </body>
-  
-  </html>
-
+</html>
